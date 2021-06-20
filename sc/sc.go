@@ -15,19 +15,11 @@ import (
 	scp "github.com/zackradisic/soundcloud-api"
 )
 
-type Song struct {
-	Title      string
-	Artist     string
-	OriginalID int
-	duration   time.Duration
-	data       scp.Transcoding
-	volume     *effects.Volume
-	controller *beep.Ctrl
-	streamer   beep.StreamSeekCloser
-	format     beep.Format
-}
-
 func GetLikes(username string) ([]Song, error) {
+	if username == "" {
+		return nil, fmt.Errorf("empty username")
+	}
+
 	sc, err := scp.New(scp.APIOptions{})
 
 	if err != nil {
@@ -102,6 +94,18 @@ func getAllLikes(sc *scp.API, user int64, offset int) []Song {
 	return songs
 }
 
+type Song struct {
+	Title      string
+	Artist     string
+	OriginalID int
+	duration   time.Duration
+	data       scp.Transcoding
+	volume     *effects.Volume
+	controller *beep.Ctrl
+	streamer   beep.StreamSeekCloser
+	format     beep.Format
+}
+
 func (song *Song) Play(done chan<- struct{}) error {
 	sc, err := scp.New(scp.APIOptions{})
 
@@ -110,6 +114,12 @@ func (song *Song) Play(done chan<- struct{}) error {
 	}
 
 	buffer := &bytes.Buffer{}
+
+	// its a prop song to write on the browser probably.
+	if song.OriginalID == 0 {
+		done <- struct{}{}
+		return nil
+	}
 
 	err = sc.DownloadTrack(song.data, buffer)
 	if err != nil {

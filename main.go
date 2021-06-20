@@ -29,7 +29,7 @@ func run() {
 		ButtonOver: colornames.Darkgoldenrod,
 	}
 
-	w, err := win.New(win.Title("SoundCloud player"), win.Size(1000, 600), win.Resizable())
+	w, err := win.New(win.Title("scplayer"), win.Size(1000, 600), win.Resizable())
 	if err != nil {
 		panic(err)
 	}

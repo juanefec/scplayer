@@ -15,7 +15,7 @@ import (
 )
 
 func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, next <-chan int, pausebtn chan<- bool, reloadUser <-chan string) {
-	username := "kr3a71ve"
+	username := ""
 
 	reload := func(songs []sc.Song) ([]sc.Song, int, *image.RGBA) {
 
@@ -75,7 +75,11 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, n
 
 	songs, err := sc.GetLikes(username)
 	if err != nil {
-		songs = []sc.Song{{Title: err.Error()}}
+		songs = []sc.Song{
+			{Artist: "          type ENTER and open the searchbar           < - - - -", Title: "- - >  quit the searchbar with ESCAPE       "},
+			{Artist: "search for a username (eg. soundcloud.com/<usename>)    < - - -", Title: "- >   or if its empty just press ENTER      "},
+			{Artist: "     type ENTER and fetch all the user likes.         < - - - -", Title: "- - - - - >                                 "},
+		}
 	}
 	songs, lineHeight, namesImage := reload(songs)
 
@@ -89,7 +93,9 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, n
 	refresh := func() {
 		songs, err = sc.GetLikes(username)
 		if err != nil {
-			songs = []sc.Song{{Title: err.Error()}}
+			songs = []sc.Song{
+				{Artist: "- - - - - - -", Title: fmt.Sprintf("- - - - >  %v                 ", err.Error())},
+			}
 		}
 		songs, lineHeight, namesImage = reload(songs)
 
@@ -136,6 +142,9 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, n
 					continue
 				}
 				selected = selected + v
+				if selected > len(songs)-1 || selected < 0 || songs[selected].OriginalID == 0 {
+					continue
+				}
 				selectedOGID = songs[selected].OriginalID
 				view <- songs[selected]
 				pausebtn <- true
@@ -163,6 +172,10 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, n
 				}
 
 				selected = i
+				if songs[selected].OriginalID == 0 {
+					continue
+				}
+
 				selectedOGID = songs[selected].OriginalID
 				view <- songs[selected]
 				pausebtn <- true
