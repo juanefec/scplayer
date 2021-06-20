@@ -19,7 +19,6 @@ type Song struct {
 	Title      string
 	Artist     string
 	OriginalID int
-	paused     bool
 	duration   time.Duration
 	data       scp.Transcoding
 	volume     *effects.Volume
@@ -78,6 +77,13 @@ func getAllLikes(sc *scp.API, user int64, offset int) []Song {
 			songs = append(songs, s)
 		}
 	}
+
+	// Recursion disabled for developing, it takes some time to bring all tracks sometimes.
+	//
+	// After mapping SC Tracks to Songs we look for the sc_response.NextHref, this prop
+	// contains the url that follows your search, this way you will be able to retrive all
+	// the list.
+	// Here I just take the offset value form the url.Query() and pass it recusively
 
 	// if ls.NextHref != "" {
 	// 	url, err := url.Parse(ls.NextHref)

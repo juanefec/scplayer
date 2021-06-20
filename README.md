@@ -5,8 +5,13 @@ $ go build
 $ ./scplayer
 ```
 
-This example is a proof of concept that it is actually possible to make real GUI apps with this package :).
+This example is a proof of concept that it is still actually possible to make real GUI apps with this package :)
 
-![Screenshot](screenshot.png)
+It sure does his job. Try not to rezise it too much. lol.
 
+Thanks [faiface](http://github.com/faiface) allways giving out really good examples that I use as [base project](https://github.com/faiface/gui/tree/master/examples/imageviewer) :')  
 
+### Screenshots
+![Updated](updated_screenshot.png)
+
+![Search Freature](search_feature.png)
