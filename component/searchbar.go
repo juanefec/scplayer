@@ -96,6 +96,8 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 			}
 			text = MakeTextImage(searchterm.String(), theme.Face, color.Black)
 			env.Draw() <- redraw(r, text, icon, isOpen)
+		default:
+			env.Draw() <- redraw(r, text, icon, isOpen)
 		}
 	}
 	close(env.Draw())

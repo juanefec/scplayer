@@ -15,7 +15,7 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, next <-chan int, pausebtn chan<- bool, reloadUser <-chan string) {
+func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, move <-chan int, pausebtn chan<- bool, reloadUser <-chan string) {
 	username := "kr3a71ve"
 
 	reload := func(songs []sc.Song) ([]sc.Song, int, *image.RGBA) {
@@ -107,7 +107,18 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, n
 			}
 		}
 	}
-
+	go func() {
+		for {
+			select {
+			case _, ok := <-env.Events():
+				if !ok {
+					return
+				}
+			case <-time.After(time.Millisecond * 100):
+				env.Draw() <- redraw(r, selected, position, lineHeight, namesImage)
+			}
+		}
+	}()
 	for {
 		select {
 		case newuser := <-reloadUser:
@@ -136,7 +147,7 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, n
 
 				env.Draw() <- redraw(r, selected, position, lineHeight, namesImage)
 			}
-		case v := <-next:
+		case v := <-move:
 			if selected >= -1 && selected < len(songs)+1 {
 				if selected == 0 && v == -1 {
 					continue

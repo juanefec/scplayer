@@ -124,3 +124,35 @@ func EvenVertical(env gui.Env, minI, maxI, n int) gui.Env {
 
 	return &envPair{out, env.Draw()}
 }
+
+func EvenVerticalMaxMinY(env gui.Env, minI, maxI, n, minY, maxY int) gui.Env {
+	out, in := gui.MakeEventsChan()
+
+	go func() {
+		for e := range env.Events() {
+			if resize, ok := e.(gui.Resize); ok {
+				out := false
+				if resize.Min.Y < minY {
+					resize.Min.Y = minY
+					out = true
+				}
+				if resize.Max.Y > maxY {
+					resize.Max.Y = maxY
+					out = true
+				}
+				if out {
+					in <- resize
+					continue
+				}
+				y0, y1 := resize.Min.Y, resize.Max.Y
+				resize.Min.Y, resize.Max.Y = y0+(y1-y0)*minI/n, y0+(y1-y0)*maxI/n
+				in <- resize
+			} else {
+				in <- e
+			}
+		}
+		close(in)
+	}()
+
+	return &envPair{out, env.Draw()}
+}

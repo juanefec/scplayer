@@ -23,10 +23,10 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 			DrawRightCentered(drw, r.Inset(4), imgProgressTop, draw.Over)
 
 			if rail != nil {
-				DrawCentered(drw, r, rail, draw.Over)
+				DrawCentered(drw, r.Inset(4), rail, draw.Over)
 			}
 			if progress != nil {
-				DrawCentered(drw, r, progress, draw.Over)
+				DrawCentered(drw, r.Inset(4), progress, draw.Over)
 			}
 			return r
 		}
@@ -53,11 +53,14 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 				return
 
 			case <-time.After(time.Millisecond * 100):
-				if r, p, ok := MakeRailAndProgressImage(r, song); ok {
-					rail, progress = r, p
-				}
+
 				imgProgress = MakeTextImage(song.Progress(), theme.Face, theme.Text)
 				imgProgressTop = MakeTextImage(song.Duration(), theme.Face, theme.Text)
+
+				if ra, pr, ok := MakeRailAndProgressImage(r, song); ok {
+					rail, progress = ra, pr
+				}
+
 				env.Draw() <- redraw(r, rail, progress, imgProgress, imgProgressTop)
 
 			}

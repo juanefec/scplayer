@@ -87,16 +87,17 @@ func MakeTextImage(text string, face font.Face, clr color.Color) image.Image {
 }
 
 func MakeRailAndProgressImage(r image.Rectangle, song sc.Song) (image.Image, image.Image, bool) {
+
 	if r.Dx() >= 0 && r.Dy() >= 0 {
 		off := r.Dx() / 12
 		pixs, pixe := off, r.Dx()-off
 		rail := image.NewRGBA(r)
-		hline(rail, pixs, r.Dy(), pixe)
+		hline(rail, pixs, r.Max.Y-r.Dy()/2, pixe)
 
 		d, p := song.DurationMs(), song.ProgressMs()
 		ptop := Map(p, 0, d, pixs, pixe)
 		progress := image.NewRGBA(r)
-		hlineBold(progress, pixs, r.Dy(), ptop, colornames.Darkred)
+		hlineBold(progress, pixs, r.Max.Y-r.Dy()/2, ptop, colornames.Darkred)
 		return rail, progress, true
 	}
 	return nil, nil, false
@@ -123,7 +124,7 @@ func Map(vi, s1i, st1i, s2i, st2i int) int {
 	return int(newval)
 }
 
-// HLine draws a horizontal line
+// hline draws a horizontal line
 func hline(img *image.RGBA, x1, y, x2 int) {
 	for ; x1 <= x2; x1++ {
 		img.Set(x1, y, color.Black)
@@ -136,13 +137,6 @@ func hlineBold(img *image.RGBA, x1, y, x2 int, col color.Color) {
 		img.Set(x1, y, col)
 		img.Set(x1, y+1, col)
 		img.Set(x1, y+2, col)
-	}
-}
-
-// VLine draws a veritcal line
-func vlLine(img image.RGBA, x, y1, y2 int) {
-	for ; y1 <= y2; y1++ {
-		img.Set(x, y1, color.Black)
 	}
 }
 
@@ -169,18 +163,6 @@ func DrawLeftCentered(dst draw.Image, r image.Rectangle, src image.Image, op dra
 	leftCenter := image.Pt(bounds.Min.X, (bounds.Min.Y+bounds.Max.Y)/2)
 	target := image.Pt(r.Min.X, (r.Min.Y+r.Max.Y)/2)
 	delta := target.Sub(leftCenter)
-	draw.Draw(dst, bounds.Add(delta).Intersect(r), src, bounds.Min, op)
-}
-
-func DrawLeftOffsetCentered(dst draw.Image, r image.Rectangle, src image.Image, op draw.Op, offset int) {
-	if src == nil {
-		return
-	}
-	bounds := src.Bounds()
-	leftCenter := image.Pt(bounds.Min.X+bounds.Dx()/offset, (bounds.Min.Y+bounds.Max.Y)/2)
-	target := image.Pt(r.Min.X+bounds.Dx()/offset, (r.Min.Y+r.Max.Y)/2)
-	delta := target.Sub(leftCenter)
-	bounds.Min.X = bounds.Min.X + bounds.Dx()/offset
 	draw.Draw(dst, bounds.Add(delta).Intersect(r), src, bounds.Min, op)
 }
 

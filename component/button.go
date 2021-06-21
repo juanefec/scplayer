@@ -133,6 +133,27 @@ func PauseButton(env gui.Env, theme *Theme, pausebtn <-chan bool, action func(bo
 					pressed = false
 					env.Draw() <- redraw(r, over, pressed)
 				}
+			case win.KbDown:
+				switch e.Key {
+				case win.KeySpace:
+
+					pressed = true
+					env.Draw() <- redraw(r, over, pressed)
+
+				}
+
+			case win.KbUp:
+				switch e.Key {
+				case win.KeySpace:
+					if pressed {
+						action(playing)
+						playing = !playing
+
+						pressed = false
+
+						env.Draw() <- redraw(r, over, pressed)
+					}
+				}
 			}
 
 		}
