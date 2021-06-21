@@ -7,7 +7,6 @@ import (
 
 	"github.com/faiface/gui"
 	"github.com/faiface/gui/win"
-	"github.com/juanefec/scplayer/util"
 	. "github.com/juanefec/scplayer/util"
 )
 
@@ -56,7 +55,7 @@ func VolumeSlider(env gui.Env, theme *Theme, trigUpdateVolume <-chan struct{}, c
 			case win.MoMove:
 				over = e.Point.In(r)
 				if over && pressed {
-					volf = util.MapIntFloat(e.Point.Y, r.Min.Y, r.Max.Y, volmax, volmin)
+					volf = MapIntFloat(e.Point.Y, r.Min.Y, r.Max.Y, volmax, volmin)
 					if volf > 0.3 {
 						vol = int(math.Ceil(volf))
 					} else {
@@ -73,7 +72,7 @@ func VolumeSlider(env gui.Env, theme *Theme, trigUpdateVolume <-chan struct{}, c
 				newPressed := e.Point.In(r)
 				if newPressed != pressed {
 					pressed = newPressed
-					volf = util.MapIntFloat(e.Point.Y, r.Min.Y, r.Max.Y, volmax, volmin)
+					volf = MapIntFloat(e.Point.Y, r.Min.Y, r.Max.Y, volmax, volmin)
 					if volf > 0.3 {
 						vol = int(math.Ceil(volf))
 					} else {
@@ -96,5 +95,5 @@ func VolumeSlider(env gui.Env, theme *Theme, trigUpdateVolume <-chan struct{}, c
 
 	}
 
-	close(env.Draw())
+	//close(env.Draw())
 }
