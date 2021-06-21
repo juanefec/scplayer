@@ -86,17 +86,20 @@ func MakeTextImage(text string, face font.Face, clr color.Color) image.Image {
 	return drawer.Dst
 }
 
-func MakeRailAndProgressImage(r image.Rectangle, song sc.Song) (image.Image, image.Image) {
-	off := r.Dx() / 12
-	pixs, pixe := off, r.Dx()-off
-	rail := image.NewRGBA(r)
-	hline(rail, pixs, r.Dy(), pixe)
+func MakeRailAndProgressImage(r image.Rectangle, song sc.Song) (image.Image, image.Image, bool) {
+	if r.Dx() >= 0 && r.Dy() >= 0 {
+		off := r.Dx() / 12
+		pixs, pixe := off, r.Dx()-off
+		rail := image.NewRGBA(r)
+		hline(rail, pixs, r.Dy(), pixe)
 
-	d, p := song.DurationSegs(), song.ProgressSegs()
-	ptop := Map(p, 0, d, pixs, pixe)
-	progress := image.NewRGBA(r)
-	hlineBold(progress, pixs, r.Dy(), ptop, colornames.Darkred)
-	return rail, progress
+		d, p := song.DurationSegs(), song.ProgressSegs()
+		ptop := Map(p, 0, d, pixs, pixe)
+		progress := image.NewRGBA(r)
+		hlineBold(progress, pixs, r.Dy(), ptop, colornames.Darkred)
+		return rail, progress, true
+	}
+	return nil, nil, false
 }
 
 func Map(vi, s1i, st1i, s2i, st2i int) int {

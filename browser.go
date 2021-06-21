@@ -73,17 +73,16 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, n
 		}
 	}
 
-	songs, err := sc.GetLikes(username)
-	if err != nil {
-		songs = []sc.Song{
-			{Artist: "          type ENTER and open the searchbar           < - - - -", Title: "- - >  quit the searchbar with ESCAPE       "},
-			{Artist: "search for a username (eg. soundcloud.com/<usename>)    < - - -", Title: "- >   or if its empty just press ENTER      "},
-			{Artist: "     type ENTER and fetch all the user likes.         < - - - -", Title: "- - - - - >                                 "},
-		}
+	songs := []sc.Song{
+		{Artist: "          type ENTER and open the searchbar             < - - -", Title: "- >    quit the searchbar with ESCAPE       "},
+		{Artist: "search for a username (eg. soundcloud.com/<usename>)  < - - - -", Title: "- - > or if its empty just press ENTER      "},
+		{Artist: "     type ENTER and fetch all the user likes.       < - - - - -", Title: "- - - >                                     "},
 	}
+
 	songs, lineHeight, namesImage := reload(songs)
 
 	var (
+		err          error
 		r            image.Rectangle
 		position     = image.Point{}
 		selected     = -1

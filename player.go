@@ -57,7 +57,9 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 				return
 
 			case <-time.After(time.Second):
-				rail, progress = MakeRailAndProgressImage(r, song)
+				if r, p, ok := MakeRailAndProgressImage(r, song); ok {
+					rail, progress = r, p
+				}
 				imgProgress = MakeTextImage(song.Progress(), theme.Face, theme.Text)
 				imgProgressTop = MakeTextImage(song.Duration(), theme.Face, theme.Text)
 				env.Draw() <- redraw(r, rail, progress, imgProgress, imgProgressTop)
