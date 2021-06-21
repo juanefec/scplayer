@@ -12,6 +12,7 @@ import (
 	"github.com/faiface/beep/effects"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/speaker"
+	"github.com/juanefec/scplayer/util"
 	scp "github.com/zackradisic/soundcloud-api"
 )
 
@@ -157,6 +158,19 @@ func (song *Song) Play(done chan<- struct{}) error {
 	speaker.Play(song.volume)
 
 	return nil
+}
+
+func (song *Song) SetVolume(vol float64) {
+	if song == nil || song.volume == nil {
+		return
+	}
+	if vol < 0.3 {
+		song.volume.Silent = true
+		return
+	}
+	song.volume.Silent = false
+	rs, re := -6.5, 1.8
+	song.volume.Volume = util.MapFloat(float64(vol), 0, 9, rs, re)
 }
 
 func (song Song) Progress() string {

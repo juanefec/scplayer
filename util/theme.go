@@ -9,13 +9,14 @@ import (
 type Theme struct {
 	Face font.Face
 
-	Title      color.Color
-	Background color.Color
-	Empty      color.Color
-	Text       color.Color
-	Highlight  color.Color
-	ButtonUp   color.Color
-	ButtonOver color.Color
-	ButtonDown color.Color
-	VolumeBg   color.Color
+	Title        color.Color
+	Background   color.Color
+	Empty        color.Color
+	Text         color.Color
+	Highlight    color.Color
+	ButtonUp     color.Color
+	ButtonOver   color.Color
+	ButtonDown   color.Color
+	VolumeBg     color.Color
+	VolumeBgOver color.Color
 }

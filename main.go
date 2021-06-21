@@ -23,15 +23,16 @@ func run() {
 	theme := &Theme{
 		Face: face,
 
-		Title:      colornames.Steelblue,
-		Background: colornames.Darkseagreen, //colornames.Azure,
-		Empty:      colornames.Dodgerblue,   //colornames.Seagreen,
-		Text:       colornames.Black,
-		Highlight:  colornames.Blueviolet,
-		ButtonUp:   colornames.Lightgrey,
-		ButtonDown: colornames.Grey,
-		ButtonOver: colornames.Darkgoldenrod,
-		VolumeBg:   color.RGBA{0x50, 0x50, 0x50, 0xff},
+		Title:        colornames.Steelblue,
+		Background:   colornames.Darkseagreen, //colornames.Azure,
+		Empty:        colornames.Dodgerblue,   //colornames.Seagreen,
+		Text:         colornames.Black,
+		Highlight:    colornames.Blueviolet,
+		ButtonUp:     colornames.Lightgrey,
+		ButtonDown:   colornames.Grey,
+		ButtonOver:   colornames.Darkgoldenrod,
+		VolumeBg:     color.RGBA{0x50, 0x50, 0x50, 0xff},
+		VolumeBgOver: color.RGBA{0x60, 0x60, 0x60, 0xff},
 	}
 
 	w, err := win.New(win.Title("scplayer"), win.Size(1000, 600), win.Resizable())
@@ -50,6 +51,8 @@ func run() {
 	pausebtn := make(chan bool)
 	pausebtnstatus := make(chan bool)
 	updateTitle := make(chan string)
+	updateVolume := make(chan float64)
+	trigUpdateVolume := make(chan struct{})
 	newInfo := make(chan string)
 
 	go component.Button(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 0, 1, 10, 0, 40), 0, 1, 16, 0, 40), theme, "refresh", func() {
@@ -74,17 +77,17 @@ func run() {
 
 	go component.Title(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 5, 10, 10, 200, 1920), 0, 1, 16, 0, 40), theme, updateTitle)
 
-	go component.Huh(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 0, 1, 14, 0, 60), 1, 2, 16, 40, 80), theme, func() {
-		action <- "refresh"
+	go component.VolumeSlider(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 0, 1, 14, 0, 60), 1, 2, 16, 40, 80), theme, trigUpdateVolume, func(v float64) {
+		updateVolume <- v
 	})
 
-	go component.Player(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 1, 14, 14, 60, 1920), 1, 2, 16, 40, 80), theme, song, pausebtn, move, updateTitle)
+	go component.Player(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 1, 14, 14, 60, 1920), 1, 2, 16, 40, 80), theme, song, pausebtn, move, updateTitle, updateVolume, trigUpdateVolume)
 
-	go component.Infobar(EvenVerticalMinMaxY(EvenHorizontal(mux.MakeEnv(), 0, 1, 1), 2, 3, 16, 80, 110), theme, newInfo, func(searchterm string) {
+	go component.Infobar(EvenVerticalMinMaxY(EvenHorizontal(mux.MakeEnv(), 0, 1, 1), 2, 3, 16, 80, 100), theme, newInfo, func(searchterm string) {
 		reloadUser <- searchterm
 	})
 
-	go component.Browser(EvenVerticalMinMaxY(EvenHorizontal(mux.MakeEnv(), 0, 1, 1), 3, 16, 16, 110, 1080), theme, action, song, move, pausebtnstatus, reloadUser, newInfo)
+	go component.Browser(EvenVerticalMinMaxY(EvenHorizontal(mux.MakeEnv(), 0, 1, 1), 3, 16, 16, 100, 1080), theme, action, song, move, pausebtnstatus, reloadUser, newInfo)
 
 	for e := range env.Events() {
 		switch e.(type) {

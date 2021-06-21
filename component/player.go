@@ -13,7 +13,7 @@ import (
 	. "github.com/juanefec/scplayer/util"
 )
 
-func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan bool, next chan<- int, updateTitle chan<- string) {
+func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan bool, next chan<- int, updateTitle chan<- string, updateVol <-chan float64, trigUpdateVol chan<- struct{}) {
 
 	redraw := func(r image.Rectangle, rail image.Image, progress image.Image, imgProgress image.Image, imgProgressTop image.Image) func(draw.Image) image.Rectangle {
 		return func(drw draw.Image) image.Rectangle {
@@ -57,7 +57,7 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 				imgProgress = MakeTextImage(song.Progress(), theme.Face, theme.Text)
 				imgProgressTop = MakeTextImage(song.Duration(), theme.Face, theme.Text)
 
-				if ra, pr, ok := MakeRailAndProgressImage(r, song); ok {
+				if ra, pr, ok := MakeRailAndProgressImage(r, song.DurationMs(), song.ProgressMs()); ok {
 					rail, progress = ra, pr
 				}
 
@@ -90,15 +90,15 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 			if err != nil {
 				log.Fatal(err.Error())
 			}
-
 			go songTimer()
 
 			title := fmt.Sprintf("%v - %v", song.Artist, song.Title)
 
 			updateTitle <- title
-
+			trigUpdateVol <- struct{}{}
 			env.Draw() <- redraw(r, rail, progress, imgProgress, imgProgressTop)
-
+		case v := <-updateVol:
+			song.SetVolume(v)
 		case e, ok := <-env.Events():
 			if !ok {
 				return

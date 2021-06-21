@@ -8,7 +8,6 @@ import (
 
 	"github.com/golang/freetype/truetype"
 	"github.com/juanefec/scplayer/icons"
-	"github.com/juanefec/scplayer/sc"
 	"github.com/pbnjay/pixfont"
 
 	"golang.org/x/image/colornames"
@@ -86,7 +85,7 @@ func MakeTextImage(text string, face font.Face, clr color.Color) image.Image {
 	return drawer.Dst
 }
 
-func MakeRailAndProgressImage(r image.Rectangle, song sc.Song) (image.Image, image.Image, bool) {
+func MakeRailAndProgressImage(r image.Rectangle, duration, progress int) (image.Image, image.Image, bool) {
 
 	if r.Dx() >= 0 && r.Dy() >= 0 {
 		//off := r.Dx() / 12
@@ -94,8 +93,7 @@ func MakeRailAndProgressImage(r image.Rectangle, song sc.Song) (image.Image, ima
 		rail := image.NewRGBA(r)
 		hline(rail, pixs, r.Max.Y-r.Dy()/2, pixe)
 
-		d, p := song.DurationMs(), song.ProgressMs()
-		ptop := Map(p, 0, d, pixs, pixe)
+		ptop := Map(progress, 0, duration, pixs, pixe)
 		progress := image.NewRGBA(r)
 		hlineBold(progress, pixs, r.Max.Y-r.Dy()/2, ptop, colornames.Darkred)
 		return rail, progress, true
@@ -122,6 +120,47 @@ func Map(vi, s1i, st1i, s2i, st2i int) int {
 		}
 	}
 	return int(newval)
+}
+
+func MapIntFloat(vi, s1i, st1i, s2i, st2i int) float64 {
+	v, s1, st1, s2, st2 := float64(vi), float64(s1i), float64(st1i), float64(s2i), float64(st2i)
+	newval := (v-s1)/(st1-s1)*(st2-s2) + s2
+	if s2 < st2 {
+		if newval < s2 {
+			return s2
+		}
+		if newval > st2 {
+			return st2
+		}
+	} else {
+		if newval > s2 {
+			return s2
+		}
+		if newval < st2 {
+			return st2
+		}
+	}
+	return newval
+}
+
+func MapFloat(v, s1, st1, s2, st2 float64) float64 {
+	newval := (v-s1)/(st1-s1)*(st2-s2) + s2
+	if s2 < st2 {
+		if newval < s2 {
+			return s2
+		}
+		if newval > st2 {
+			return st2
+		}
+	} else {
+		if newval > s2 {
+			return s2
+		}
+		if newval < st2 {
+			return st2
+		}
+	}
+	return newval
 }
 
 // hline draws a horizontal line
