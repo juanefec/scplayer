@@ -174,7 +174,7 @@ func (song Song) Duration() string {
 	return durationToStr(song.duration)
 }
 
-func (song Song) ProgressSegs() int {
+func (song Song) ProgressMs() int {
 	if song.streamer == nil {
 		return 0
 	}
@@ -182,11 +182,11 @@ func (song Song) ProgressSegs() int {
 	t := song.format.SampleRate.D(song.streamer.Position())
 	speaker.Unlock()
 
-	return int(t / time.Second)
+	return int(t / time.Millisecond)
 }
 
-func (song Song) DurationSegs() int {
-	return int(song.duration / time.Second)
+func (song Song) DurationMs() int {
+	return int(song.duration / time.Millisecond)
 }
 
 func (song Song) Resume() error {

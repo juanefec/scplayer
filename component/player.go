@@ -1,4 +1,4 @@
-package main
+package component
 
 import (
 	"fmt"
@@ -10,11 +10,7 @@ import (
 	"github.com/faiface/gui"
 	"github.com/juanefec/scplayer/sc"
 
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
-
-	_ "golang.org/x/image/bmp"
+	. "github.com/juanefec/scplayer/util"
 )
 
 func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan bool, next chan<- int, updateTitle chan<- string) {
@@ -56,13 +52,14 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 			case <-doneTimer:
 				return
 
-			case <-time.After(time.Second):
+			case <-time.After(time.Millisecond * 100):
 				if r, p, ok := MakeRailAndProgressImage(r, song); ok {
 					rail, progress = r, p
 				}
 				imgProgress = MakeTextImage(song.Progress(), theme.Face, theme.Text)
 				imgProgressTop = MakeTextImage(song.Duration(), theme.Face, theme.Text)
 				env.Draw() <- redraw(r, rail, progress, imgProgress, imgProgressTop)
+
 			}
 		}
 	}
@@ -101,7 +98,6 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 
 		case e, ok := <-env.Events():
 			if !ok {
-				close(env.Draw())
 				return
 			}
 

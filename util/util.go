@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"image"
@@ -93,7 +93,7 @@ func MakeRailAndProgressImage(r image.Rectangle, song sc.Song) (image.Image, ima
 		rail := image.NewRGBA(r)
 		hline(rail, pixs, r.Dy(), pixe)
 
-		d, p := song.DurationSegs(), song.ProgressSegs()
+		d, p := song.DurationMs(), song.ProgressMs()
 		ptop := Map(p, 0, d, pixs, pixe)
 		progress := image.NewRGBA(r)
 		hlineBold(progress, pixs, r.Dy(), ptop, colornames.Darkred)

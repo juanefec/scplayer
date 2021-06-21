@@ -1,4 +1,4 @@
-package main
+package component
 
 import (
 	"fmt"
@@ -11,11 +11,12 @@ import (
 	"github.com/faiface/gui"
 	"github.com/faiface/gui/win"
 	"github.com/juanefec/scplayer/sc"
+	. "github.com/juanefec/scplayer/util"
 	"golang.org/x/image/math/fixed"
 )
 
 func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, next <-chan int, pausebtn chan<- bool, reloadUser <-chan string) {
-	username := ""
+	username := "kr3a71ve"
 
 	reload := func(songs []sc.Song) ([]sc.Song, int, *image.RGBA) {
 

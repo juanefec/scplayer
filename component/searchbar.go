@@ -1,4 +1,4 @@
-package main
+package component
 
 import (
 	"image"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/faiface/gui"
 	"github.com/faiface/gui/win"
+	. "github.com/juanefec/scplayer/util"
 )
 
 var transparentDarkCyan = color.RGBA{0x00, 0x8b, 0x8b, 0x90}

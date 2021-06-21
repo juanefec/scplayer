@@ -1,4 +1,4 @@
-package main
+package component
 
 import (
 	"image"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/faiface/gui"
 	"github.com/faiface/gui/win"
+	. "github.com/juanefec/scplayer/util"
 )
 
 func Button(env gui.Env, theme *Theme, icon string, action func()) {
