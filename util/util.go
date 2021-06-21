@@ -79,7 +79,7 @@ func MakeTextImage(text string, face font.Face, clr color.Color) image.Image {
 		b26_6.Min.X.Floor(),
 		b26_6.Min.Y.Floor()-6,
 		pixfont.MeasureString(text),
-		pixfont.DefaultFont.GetHeight(),
+		pixfont.DefaultFont.GetHeight()/2,
 	)
 	drawer.Dst = image.NewRGBA(bounds)
 	pixfont.DrawString(drawer.Dst, b26_6.Min.X.Floor(), b26_6.Min.Y.Floor(), text, color.Black)
@@ -89,8 +89,8 @@ func MakeTextImage(text string, face font.Face, clr color.Color) image.Image {
 func MakeRailAndProgressImage(r image.Rectangle, song sc.Song) (image.Image, image.Image, bool) {
 
 	if r.Dx() >= 0 && r.Dy() >= 0 {
-		off := r.Dx() / 12
-		pixs, pixe := off, r.Dx()-off
+		//off := r.Dx() / 12
+		pixs, pixe := r.Min.X, r.Max.X
 		rail := image.NewRGBA(r)
 		hline(rail, pixs, r.Max.Y-r.Dy()/2, pixe)
 

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"image/color"
+
 	"github.com/faiface/gui"
 	"github.com/faiface/gui/win"
 	"github.com/faiface/mainthread"
@@ -29,6 +31,7 @@ func run() {
 		ButtonUp:   colornames.Lightgrey,
 		ButtonDown: colornames.Grey,
 		ButtonOver: colornames.Darkgoldenrod,
+		VolumeBg:   color.RGBA{0x50, 0x50, 0x50, 0xff},
 	}
 
 	w, err := win.New(win.Title("scplayer"), win.Size(1000, 600), win.Resizable())
@@ -47,36 +50,41 @@ func run() {
 	pausebtn := make(chan bool)
 	pausebtnstatus := make(chan bool)
 	updateTitle := make(chan string)
+	newInfo := make(chan string)
 
-	go component.Button(EvenVerticalMaxMinY(EvenHorizontal(mux.MakeEnv(), 0, 1, 10), 0, 1, 16, 0, 40), theme, "refresh", func() {
+	go component.Button(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 0, 1, 10, 0, 40), 0, 1, 16, 0, 40), theme, "refresh", func() {
 		action <- "refresh"
 	})
 
-	go component.Button(EvenVerticalMaxMinY(EvenHorizontal(mux.MakeEnv(), 1, 2, 10), 0, 1, 16, 0, 40), theme, "back", func() {
+	go component.Button(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 1, 2, 10, 40, 80), 0, 1, 16, 0, 40), theme, "back", func() {
 		move <- -1
 	})
 
-	go component.PauseButton(EvenVerticalMaxMinY(EvenHorizontal(mux.MakeEnv(), 2, 3, 10), 0, 1, 16, 0, 40), theme, pausebtnstatus, func(playing bool) {
+	go component.PauseButton(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 2, 3, 10, 80, 120), 0, 1, 16, 0, 40), theme, pausebtnstatus, func(playing bool) {
 		pausebtn <- playing
 	})
 
-	go component.Button(EvenVerticalMaxMinY(EvenHorizontal(mux.MakeEnv(), 3, 4, 10), 0, 1, 16, 0, 40), theme, "forward", func() {
+	go component.Button(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 3, 4, 10, 120, 160), 0, 1, 16, 0, 40), theme, "forward", func() {
 		move <- 1
 	})
 
-	go component.Button(EvenVerticalMaxMinY(EvenHorizontal(mux.MakeEnv(), 4, 5, 10), 0, 1, 16, 0, 40), theme, "shuffle", func() {
+	go component.Button(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 4, 5, 10, 160, 200), 0, 1, 16, 0, 40), theme, "shuffle", func() {
 		action <- "shuffle"
 	})
 
-	go component.Title(EvenVerticalMaxMinY(EvenHorizontal(mux.MakeEnv(), 5, 10, 10), 0, 1, 16, 0, 40), theme, updateTitle)
+	go component.Title(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 5, 10, 10, 200, 1920), 0, 1, 16, 0, 40), theme, updateTitle)
 
-	go component.Player(EvenVerticalMaxMinY(EvenHorizontal(mux.MakeEnv(), 0, 1, 1), 1, 2, 16, 40, 80), theme, song, pausebtn, move, updateTitle)
+	go component.Huh(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 0, 1, 14, 0, 60), 1, 2, 16, 40, 80), theme, func() {
+		action <- "refresh"
+	})
 
-	go component.Browser(EvenVerticalMaxMinY(EvenHorizontal(mux.MakeEnv(), 0, 1, 1), 2, 16, 16, 80, 1080), theme, action, song, move, pausebtnstatus, reloadUser)
+	go component.Player(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 1, 14, 14, 60, 1920), 1, 2, 16, 40, 80), theme, song, pausebtn, move, updateTitle)
 
-	go component.Searchbar(EvenVertical(EvenHorizontal(mux.MakeEnv(), 1, 2, 3), 7, 8, 20), theme, func(searchterm string) {
+	go component.Infobar(EvenVerticalMinMaxY(EvenHorizontal(mux.MakeEnv(), 0, 1, 1), 2, 3, 16, 80, 110), theme, newInfo, func(searchterm string) {
 		reloadUser <- searchterm
 	})
+
+	go component.Browser(EvenVerticalMinMaxY(EvenHorizontal(mux.MakeEnv(), 0, 1, 1), 3, 16, 16, 110, 1080), theme, action, song, move, pausebtnstatus, reloadUser, newInfo)
 
 	for e := range env.Events() {
 		switch e.(type) {

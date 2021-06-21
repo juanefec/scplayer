@@ -17,4 +17,5 @@ type Theme struct {
 	ButtonUp   color.Color
 	ButtonOver color.Color
 	ButtonDown color.Color
+	VolumeBg   color.Color
 }

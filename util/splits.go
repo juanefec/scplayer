@@ -125,7 +125,7 @@ func EvenVertical(env gui.Env, minI, maxI, n int) gui.Env {
 	return &envPair{out, env.Draw()}
 }
 
-func EvenVerticalMaxMinY(env gui.Env, minI, maxI, n, minY, maxY int) gui.Env {
+func EvenVerticalMinMaxY(env gui.Env, minI, maxI, n, minY, maxY int) gui.Env {
 	out, in := gui.MakeEventsChan()
 
 	go func() {
@@ -146,6 +146,38 @@ func EvenVerticalMaxMinY(env gui.Env, minI, maxI, n, minY, maxY int) gui.Env {
 				}
 				y0, y1 := resize.Min.Y, resize.Max.Y
 				resize.Min.Y, resize.Max.Y = y0+(y1-y0)*minI/n, y0+(y1-y0)*maxI/n
+				in <- resize
+			} else {
+				in <- e
+			}
+		}
+		close(in)
+	}()
+
+	return &envPair{out, env.Draw()}
+}
+
+func EvenHorizontalMinMaxX(env gui.Env, minI, maxI, n, minX, maxX int) gui.Env {
+	out, in := gui.MakeEventsChan()
+
+	go func() {
+		for e := range env.Events() {
+			if resize, ok := e.(gui.Resize); ok {
+				out := false
+				if resize.Min.X < minX {
+					resize.Min.X = minX
+					out = true
+				}
+				if resize.Max.X > maxX {
+					resize.Max.X = maxX
+					out = true
+				}
+				if out {
+					in <- resize
+					continue
+				}
+				x0, x1 := resize.Min.X, resize.Max.X
+				resize.Min.X, resize.Max.X = x0+(x1-x0)*minI/n, x0+(x1-x0)*maxI/n
 				in <- resize
 			} else {
 				in <- e

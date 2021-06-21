@@ -15,7 +15,7 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, move <-chan int, pausebtn chan<- bool, reloadUser <-chan string) {
+func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, move <-chan int, pausebtn chan<- bool, reloadUser <-chan string, newInfo chan<- string) {
 	username := "kr3a71ve"
 
 	reload := func(songs []sc.Song) ([]sc.Song, int, *image.RGBA) {
@@ -98,7 +98,7 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, m
 			}
 		}
 		songs, lineHeight, namesImage = reload(songs)
-
+		newInfo <- fmt.Sprintf("listed %d likes from user: %s", len(songs), username)
 		position = image.Point{}
 		selected = -1
 		for i, s := range songs {
