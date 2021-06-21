@@ -83,11 +83,11 @@ func run() {
 
 	go component.Player(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 1, 14, 14, 60, 1920), 1, 2, 16, 40, 80), theme, song, pausebtn, move, updateTitle, updateVolume, trigUpdateVolume)
 
-	go component.Infobar(EvenVerticalMinMaxY(EvenHorizontal(mux.MakeEnv(), 0, 1, 1), 2, 3, 16, 80, 100), theme, newInfo, func(searchterm string) {
+	go component.Infobar(EvenVerticalMinMaxY(EvenHorizontal(mux.MakeEnv(), 0, 1, 1), 2, 3, 16, 80, 104), theme, newInfo, func(searchterm string) {
 		reloadUser <- searchterm
 	})
 
-	go component.Browser(EvenVerticalMinMaxY(EvenHorizontal(mux.MakeEnv(), 0, 1, 1), 3, 16, 16, 100, 1080), theme, action, song, move, pausebtnstatus, reloadUser, newInfo)
+	go component.Browser(EvenVerticalMinMaxY(EvenHorizontal(mux.MakeEnv(), 0, 1, 1), 3, 16, 16, 104, 1080), theme, action, song, move, pausebtnstatus, reloadUser, newInfo)
 
 	for e := range env.Events() {
 		switch e.(type) {
