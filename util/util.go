@@ -10,7 +10,6 @@ import (
 	"github.com/juanefec/scplayer/icons"
 	"github.com/pbnjay/pixfont"
 
-	"golang.org/x/image/colornames"
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 )
@@ -81,21 +80,20 @@ func MakeTextImage(text string, face font.Face, clr color.Color) image.Image {
 		pixfont.DefaultFont.GetHeight()/2,
 	)
 	drawer.Dst = image.NewRGBA(bounds)
-	pixfont.DrawString(drawer.Dst, b26_6.Min.X.Floor(), b26_6.Min.Y.Floor(), text, color.Black)
+	pixfont.DrawString(drawer.Dst, b26_6.Min.X.Floor(), b26_6.Min.Y.Floor(), text, clr)
 	return drawer.Dst
 }
 
-func MakeRailAndProgressImage(r image.Rectangle, duration, progress int) (image.Image, image.Image, bool) {
-
+func MakeRailAndProgressImage(r image.Rectangle, duration, progress int, col color.Color) (image.Image, image.Image, bool) {
 	if r.Dx() >= 0 && r.Dy() >= 0 {
 		//off := r.Dx() / 12
 		pixs, pixe := r.Min.X, r.Max.X
 		rail := image.NewRGBA(r)
-		hline(rail, pixs, r.Max.Y-r.Dy()/2, pixe)
+		hline(rail, pixs, r.Max.Y-r.Dy()/2, pixe, col)
 
 		ptop := Map(progress, 0, duration, pixs, pixe)
 		progress := image.NewRGBA(r)
-		hlineBold(progress, pixs, r.Max.Y-r.Dy()/2, ptop, colornames.Darkred)
+		hlineBold(progress, pixs, r.Max.Y-r.Dy()/2, ptop, col)
 		return rail, progress, true
 	}
 	return nil, nil, false
@@ -164,9 +162,9 @@ func MapFloat(v, s1, st1, s2, st2 float64) float64 {
 }
 
 // hline draws a horizontal line
-func hline(img *image.RGBA, x1, y, x2 int) {
+func hline(img *image.RGBA, x1, y, x2 int, col color.Color) {
 	for ; x1 <= x2; x1++ {
-		img.Set(x1, y, color.Black)
+		img.Set(x1, y, col)
 	}
 }
 func hlineBold(img *image.RGBA, x1, y, x2 int, col color.Color) {

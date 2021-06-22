@@ -20,12 +20,12 @@ func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, search func(strin
 	redraw := func(r image.Rectangle, text, icon, info image.Image, isOpen bool) func(draw.Image) image.Rectangle {
 		return func(drw draw.Image) image.Rectangle {
 			if isOpen {
-				draw.Draw(drw, r, &image.Uniform{transparentDarkCyan}, image.Point{}, draw.Src)
+				draw.Draw(drw, r, &image.Uniform{theme.Infobar}, image.Point{}, draw.Src)
 				DrawCentered(drw, r, text, draw.Over)
 				DrawLeftCentered(drw, r, icon, draw.Over)
 				return r
 			}
-			draw.Draw(drw, r, &image.Uniform{transparentDarkCyan}, image.Point{}, draw.Src)
+			draw.Draw(drw, r, &image.Uniform{theme.Infobar}, image.Point{}, draw.Src)
 			DrawCentered(drw, r, info, draw.Over)
 			return r
 		}
@@ -45,7 +45,7 @@ func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, search func(strin
 	for {
 		select {
 		case nf := <-newInfo:
-			info = MakeTextImage(nf, theme.Face, color.Black)
+			info = MakeTextImage(nf, theme.Face, theme.Text)
 			env.Draw() <- redraw(r, text, icon, info, isOpen)
 		case e, ok := <-env.Events():
 			if !ok {
@@ -54,7 +54,7 @@ func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, search func(strin
 			switch e := e.(type) {
 			case gui.Resize:
 				r = e.Rectangle
-				text = MakeTextImage(searchterm.String(), theme.Face, color.Black)
+				text = MakeTextImage(searchterm.String(), theme.Face, theme.Text)
 				env.Draw() <- redraw(r, text, icon, info, isOpen)
 
 			case win.KbRepeat:
@@ -67,7 +67,7 @@ func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, search func(strin
 							searchterm.WriteString(sofar[:len(sofar)-1])
 						}
 
-						text = MakeTextImage(searchterm.String(), theme.Face, color.Black)
+						text = MakeTextImage(searchterm.String(), theme.Face, theme.Text)
 						env.Draw() <- redraw(r, text, icon, info, isOpen)
 					}
 				}
@@ -80,14 +80,14 @@ func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, search func(strin
 						searchterm.Reset()
 					}
 					isOpen = !isOpen
-					text = MakeTextImage(searchterm.String(), theme.Face, color.Black)
+					text = MakeTextImage(searchterm.String(), theme.Face, theme.Text)
 					env.Draw() <- redraw(r, text, icon, info, isOpen)
 
 				case win.KeyEscape:
 					search("")
 					searchterm.Reset()
 					isOpen = false
-					text = MakeTextImage(searchterm.String(), theme.Face, color.Black)
+					text = MakeTextImage(searchterm.String(), theme.Face, theme.Text)
 					env.Draw() <- redraw(r, text, icon, info, isOpen)
 
 				case win.KeyBackspace:
@@ -98,7 +98,7 @@ func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, search func(strin
 							searchterm.WriteString(sofar[:len(sofar)-1])
 						}
 					}
-					text = MakeTextImage(searchterm.String(), theme.Face, color.Black)
+					text = MakeTextImage(searchterm.String(), theme.Face, theme.Text)
 					env.Draw() <- redraw(r, text, icon, info, isOpen)
 				}
 
@@ -106,7 +106,7 @@ func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, search func(strin
 				if isOpen && isAlphanumeric(e.Rune) {
 					searchterm.WriteRune(e.Rune)
 				}
-				text = MakeTextImage(searchterm.String(), theme.Face, color.Black)
+				text = MakeTextImage(searchterm.String(), theme.Face, theme.Text)
 				env.Draw() <- redraw(r, text, icon, info, isOpen)
 			}
 

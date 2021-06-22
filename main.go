@@ -23,16 +23,19 @@ func run() {
 	theme := &Theme{
 		Face: face,
 
-		Title:        colornames.Steelblue,
-		Background:   colornames.Darkseagreen, //colornames.Azure,
-		Empty:        colornames.Dodgerblue,   //colornames.Seagreen,
-		Text:         colornames.Black,
-		Highlight:    colornames.Blueviolet,
-		ButtonUp:     colornames.Lightgrey,
-		ButtonDown:   colornames.Grey,
-		ButtonOver:   colornames.Darkgoldenrod,
-		VolumeBg:     color.RGBA{0x50, 0x50, 0x50, 0xff},
-		VolumeBgOver: color.RGBA{0x60, 0x60, 0x60, 0xff},
+		Title:         color.RGBA{0x4B, 0x10, 0x4B, 0xff}, //color.RGBA{0x1C, 0x5C, 0x2C, 0xff}, //colornames.Steelblue,
+		Background:    color.RGBA{0x17, 0x0F, 0x11, 0xff}, //colornames.Azure,
+		Empty:         color.RGBA{0x17, 0x0F, 0x11, 0xff}, //colornames.Dodgerblue,              //colornames.Seagreen,
+		Text:          colornames.Whitesmoke,
+		Rail:          colornames.Whitesmoke,
+		NextHighlight: color.RGBA{0x1C, 0x5C, 0x2C, 0xff},
+		Highlight:     color.RGBA{0xc2, 0x11, 0xc5, 0xff},
+		Infobar:       color.RGBA{0x4B, 0x10, 0x4B, 0xff}, // //color.RGBA{0x55, 0x10, 0x56, 0xff},
+		ButtonUp:      color.RGBA{0x82, 0x55, 0x84, 0xff},
+		ButtonDown:    color.RGBA{0x89, 0x70, 0x8f, 0xff},
+		ButtonOver:    color.RGBA{0xAA, 0x98, 0xAE, 0xff},
+		VolumeBg:      color.RGBA{0x17, 0x0F, 0x11, 0xff},
+		VolumeBgOver:  color.RGBA{0x17, 0x0F, 0x11, 0xff},
 	}
 
 	w, err := win.New(win.Title("scplayer"), win.Size(1000, 600), win.Resizable())
@@ -53,7 +56,13 @@ func run() {
 	updateTitle := make(chan string)
 	updateVolume := make(chan float64)
 	trigUpdateVolume := make(chan struct{})
+	gotop := make(chan struct{})
+	gotosong := make(chan struct{})
 	newInfo := make(chan string)
+	listenBrowser := make(chan int)
+	updateBrowser := make(chan int)
+	listenNewBrowser := make(chan int)
+	playingPos := make(chan int)
 
 	go component.Button(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 0, 1, 10, 0, 40), 0, 1, 16, 0, 40), theme, "refresh", func() {
 		action <- "refresh"
@@ -77,17 +86,27 @@ func run() {
 
 	go component.Title(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 5, 10, 10, 200, 1920), 0, 1, 16, 0, 40), theme, updateTitle)
 
-	go component.VolumeSlider(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 0, 1, 14, 0, 60), 1, 2, 16, 40, 80), theme, trigUpdateVolume, func(v float64) {
+	go component.VolumeSlider(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 0, 1, 14, 0, 60), 1, 2, 16, 40, 90), theme, trigUpdateVolume, func(v float64) {
 		updateVolume <- v
 	})
 
-	go component.Player(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 1, 14, 14, 60, 1920), 1, 2, 16, 40, 80), theme, song, pausebtn, move, updateTitle, updateVolume, trigUpdateVolume)
+	go component.Player(EvenVerticalMinMaxY(EvenHorizontalMinX(mux.MakeEnv(), 1, 14, 14, 60), 1, 2, 16, 40, 90), theme, song, pausebtn, move, updateTitle, updateVolume, trigUpdateVolume)
 
-	go component.Infobar(EvenVerticalMinMaxY(EvenHorizontal(mux.MakeEnv(), 0, 1, 1), 2, 3, 16, 80, 104), theme, newInfo, func(searchterm string) {
+	go component.Button(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 0, 26), 2, 3, 16, 90, 114), theme, "gotop", func() {
+		gotop <- struct{}{}
+	})
+
+	go component.Button(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 26, 52), 2, 3, 16, 90, 114), theme, "gotosong", func() {
+		gotosong <- struct{}{}
+	})
+
+	go component.Infobar(EvenVerticalMinMaxY(EvenHorizontalRightMinX(mux.MakeEnv(), 0, 1, 1, 52), 2, 3, 16, 90, 114), theme, newInfo, func(searchterm string) {
 		reloadUser <- searchterm
 	})
 
-	go component.Browser(EvenVerticalMinMaxY(EvenHorizontal(mux.MakeEnv(), 0, 1, 1), 3, 16, 16, 104, 1080), theme, action, song, move, pausebtnstatus, reloadUser, newInfo)
+	go component.Browser(EvenVerticalMinMaxY(EvenHorizontalRightMinX(mux.MakeEnv(), 0, 1, 1, 52), 3, 16, 16, 114, 1080), theme, action, song, move, pausebtnstatus, reloadUser, newInfo, gotop, gotosong, updateBrowser, listenNewBrowser, listenBrowser, playingPos)
+
+	go component.BrowserSlider(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 0, 52), 3, 16, 16, 114, 1080), theme, listenBrowser, updateBrowser, listenNewBrowser, playingPos)
 
 	for e := range env.Events() {
 		switch e.(type) {

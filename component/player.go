@@ -57,7 +57,7 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 				imgProgress = MakeTextImage(song.Progress(), theme.Face, theme.Text)
 				imgProgressTop = MakeTextImage(song.Duration(), theme.Face, theme.Text)
 
-				if ra, pr, ok := MakeRailAndProgressImage(r, song.DurationMs(), song.ProgressMs()); ok {
+				if ra, pr, ok := MakeRailAndProgressImage(r, song.DurationMs(), song.ProgressMs(), theme.Rail); ok {
 					rail, progress = ra, pr
 				}
 
