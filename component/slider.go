@@ -119,7 +119,7 @@ func BrowserSlider(env gui.Env, theme *Theme, listenBrowser <-chan int, updateBr
 			)
 			draw.DrawMask(
 				drw, highr.Intersect(r),
-				&image.Uniform{theme.Highlight}, image.Point{},
+				&image.Uniform{theme.HighlightSlider}, image.Point{},
 				&image.Uniform{color.Alpha{64}}, image.Point{},
 				draw.Over,
 			)
@@ -132,8 +132,8 @@ func BrowserSlider(env gui.Env, theme *Theme, listenBrowser <-chan int, updateBr
 			)
 			draw.DrawMask(
 				drw, currsong.Intersect(r),
-				&image.Uniform{theme.Highlight}, image.Point{},
-				&image.Uniform{color.Alpha{104}}, image.Point{},
+				&image.Uniform{theme.HighlightSlider}, image.Point{},
+				&image.Uniform{color.Alpha{94}}, image.Point{},
 				draw.Over,
 			)
 

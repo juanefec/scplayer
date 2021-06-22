@@ -13,11 +13,7 @@ Thanks [faiface](http://github.com/faiface) allways giving out really good examp
 
 ### Screenshots
 
-![Max vol](max_vol.png)
-
-![Initial Screen](initial_screen.png)
-
-![Search Freature](search_feature.png)
+![newlook](newlook.png)
 
 
 
