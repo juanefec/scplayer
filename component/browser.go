@@ -251,16 +251,18 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, m
 				}
 				switch e.Button {
 				case win.ButtonLeft:
-					selected = i
-					if songs[selected].OriginalID == 0 {
-						continue
-					}
+					if selected != i {
+						selected = i
+						if songs[selected].OriginalID == 0 {
+							continue
+						}
 
-					selectedOGID = songs[selected].OriginalID
-					view <- songs[selected]
-					pausebtn <- true
-					env.Draw() <- redraw(r, selected, position, lineHeight, namesImage, playnexts)
-					playingPos <- lineHeight * selected
+						selectedOGID = songs[selected].OriginalID
+						view <- songs[selected]
+						pausebtn <- true
+						env.Draw() <- redraw(r, selected, position, lineHeight, namesImage, playnexts)
+						playingPos <- lineHeight * selected
+					}
 				case win.ButtonRight:
 					if songs[i].OriginalID == 0 {
 						continue
