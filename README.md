@@ -9,11 +9,11 @@ This example is a proof of concept that it is still actually possible to make re
 
 It sure does his job. Try not to rezise it too much. lol.
 
-Thanks [faiface](http://github.com/faiface) allways giving out really good examples that I use as [base project](https://github.com/juanefec/gui/tree/master/examples/imageviewer) :')  
+Thanks [faiface](http://github.com/faiface) allways giving out really good examples that I use as [base project](https://github.com/faiface/gui/tree/master/examples/imageviewer) :')  
 
 ### Screenshots
 
-![newlook](newlook.png)
+![pic](pic.png)
 
 
 ### TODO:
