@@ -10,18 +10,18 @@ import (
 	"github.com/juanefec/scplayer/sc"
 	. "github.com/juanefec/scplayer/util"
 	"golang.org/x/image/colornames"
-	"golang.org/x/image/font/gofont/gobold"
+	"golang.org/x/image/font/basicfont"
 )
 
 func run() {
 
-	face, err := TTFToFace(gobold.TTF, 18)
-	if err != nil {
-		panic(err)
-	}
+	// face, err := TTFToFace(gobold.TTF, 18)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	theme := &Theme{
-		Face: face,
+		Face: basicfont.Face7x13,
 
 		Title:           color.RGBA{0x4B, 0x10, 0x4B, 0xff}, //color.RGBA{0x1C, 0x5C, 0x2C, 0xff}, //colornames.Steelblue,
 		Background:      color.RGBA{0x17, 0x0F, 0x11, 0xff}, //colornames.Azure,
@@ -30,8 +30,8 @@ func run() {
 		Rail:            colornames.Whitesmoke,
 		NextHighlight:   color.RGBA{0x1C, 0x5C, 0x2C, 0xff},
 		Highlight:       color.RGBA{0xc2, 0x11, 0xc5, 0xff},
-		HighlightSlider: color.RGBA{0x4E, 0x67, 0x66, 0xff},
-		Infobar:         color.RGBA{0x4E, 0x67, 0x66, 0xff}, // //color.RGBA{0x55, 0x10, 0x56, 0xff},
+		HighlightSlider: color.RGBA{0x1C, 0x5C, 0x2C, 0xff},
+		Infobar:         color.RGBA{0x4B, 0x10, 0x4B, 0xff}, // //color.RGBA{0x55, 0x10, 0x56, 0xff},
 		ButtonUp:        color.RGBA{0x82, 0x55, 0x84, 0xff},
 		ButtonDown:      color.RGBA{0x89, 0x70, 0x8f, 0xff},
 		ButtonOver:      color.RGBA{0xAA, 0x98, 0xAE, 0xff},

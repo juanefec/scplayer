@@ -42,6 +42,7 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 		rail           image.Image
 		done           = make(chan struct{})
 		doneTimer      = make(chan struct{})
+		playing        bool
 	)
 
 	song := sc.Song{}
@@ -70,26 +71,34 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 	for {
 		select {
 		case <-done:
+			playing = false
 			doneTimer <- struct{}{}
 			next <- 1
-
-		case playing := <-pausebtn:
-			if playing {
+		case bplaying := <-pausebtn:
+			if bplaying {
+				playing = false
 				song.Pause()
 			} else {
+
 				err := song.Resume()
 				if err != nil {
 					next <- 1
+				} else {
+					playing = true
 				}
 			}
 
 		case song = <-newsong:
 			song.Stop()
+			if playing {
+				doneTimer <- struct{}{}
+			}
 
 			err := song.Play(done)
 			if err != nil {
 				log.Fatal(err.Error())
 			}
+			playing = true
 			go songTimer()
 
 			title := fmt.Sprintf("%v - %v", song.Artist, song.Title)
@@ -101,6 +110,7 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 			song.SetVolume(v)
 		case e, ok := <-env.Events():
 			if !ok {
+				close(env.Draw())
 				return
 			}
 

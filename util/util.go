@@ -8,7 +8,6 @@ import (
 
 	"github.com/golang/freetype/truetype"
 	"github.com/juanefec/scplayer/icons"
-	"github.com/pbnjay/pixfont"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
@@ -75,25 +74,29 @@ func MakeTextImage(text string, face font.Face, clr color.Color) image.Image {
 	//fmt.Printf("%v -> \n\tx0: %v\n\ty0: %v\n", text, b26_6.Min.X.Floor(), b26_6.Min.Y.Floor())
 	bounds := image.Rect(
 		b26_6.Min.X.Floor(),
-		b26_6.Min.Y.Floor()-6,
-		pixfont.MeasureString(text),
-		pixfont.DefaultFont.GetHeight()/2,
+		b26_6.Min.Y.Floor(),
+		//b26_6.Min.Y.Floor()-6,
+		b26_6.Max.X.Ceil(),
+		b26_6.Max.Y.Ceil()+4,
+		//pixfont.MeasureString(text),
+		//pixfont.DefaultFont.GetHeight()/2,
 	)
 	drawer.Dst = image.NewRGBA(bounds)
-	pixfont.DrawString(drawer.Dst, b26_6.Min.X.Floor(), b26_6.Min.Y.Floor(), text, clr)
+	drawer.DrawString(text)
+	//pixfont.DrawString(drawer.Dst, b26_6.Min.X.Floor(), b26_6.Min.Y.Floor(), text, clr)
 	return drawer.Dst
 }
 
 func MakeRailAndProgressImage(r image.Rectangle, duration, progress int, col color.Color) (image.Image, image.Image, bool) {
 	if r.Dx() >= 0 && r.Dy() >= 0 {
 		//off := r.Dx() / 12
-		pixs, pixe := r.Min.X, r.Max.X
+		pixs, pixe := r.Min.X+40, r.Max.X-45
 		rail := image.NewRGBA(r)
-		hline(rail, pixs, r.Max.Y-r.Dy()/2, pixe, col)
+		hline(rail, pixs, 60, pixe, col)
 
 		ptop := Map(progress, 0, duration, pixs, pixe)
 		progress := image.NewRGBA(r)
-		hlineBold(progress, pixs, r.Max.Y-r.Dy()/2, ptop, col)
+		hlineBold(progress, pixs, 60, ptop, col)
 		return rail, progress, true
 	}
 	return nil, nil, false
