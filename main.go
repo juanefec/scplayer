@@ -17,7 +17,11 @@ import (
 
 func run() {
 
-	// face, err := TTFToFace(gobold.TTF, 18)
+	// ttffile, err := os.ReadFile("pxfont.TTF")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// face, err := TTFToFace(ttffile, 16)
 	// if err != nil {
 	// 	panic(err)
 	// }

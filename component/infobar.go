@@ -45,7 +45,7 @@ func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, search func(strin
 	for {
 		select {
 		case nf := <-newInfo:
-			info = MakeTextImage(nf, theme.Face, theme.Text)
+			info = MakeTextScaledImage(nf, theme.Face, theme.Text, 0.9)
 			env.Draw() <- redraw(r, text, icon, info, isOpen)
 		case e, ok := <-env.Events():
 			if !ok {

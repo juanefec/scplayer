@@ -164,7 +164,7 @@ func Title(env gui.Env, theme *Theme, newTitle <-chan string) {
 	for {
 		select {
 		case t := <-newTitle:
-			imgTitle = MakeTextImage(t, theme.Face, theme.Text)
+			imgTitle = MakeTextScaledImage(t, theme.Face, theme.Text, 1.5)
 			env.Draw() <- redraw(r, imgTitle)
 		case e, ok := <-env.Events():
 			if !ok {

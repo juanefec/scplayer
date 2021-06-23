@@ -3,12 +3,13 @@ package util
 import (
 	"image"
 	"image/color"
-	"image/draw"
+
 	"sync"
 
 	"github.com/golang/freetype/truetype"
 	"github.com/juanefec/scplayer/icons"
 
+	"golang.org/x/image/draw"
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 )
@@ -85,6 +86,76 @@ func MakeTextImage(text string, face font.Face, clr color.Color) image.Image {
 	drawer.DrawString(text)
 	//pixfont.DrawString(drawer.Dst, b26_6.Min.X.Floor(), b26_6.Min.Y.Floor(), text, clr)
 	return drawer.Dst
+}
+
+func MakeTextScaledImage(text string, face font.Face, clr color.Color, scale float32) image.Image {
+	drawer := &font.Drawer{
+		Src:  &image.Uniform{clr},
+		Face: face,
+		Dot:  fixed.P(0, 0),
+	}
+	b26_6, _ := drawer.BoundString(text)
+	//fmt.Printf("%v -> \n\tx0: %v\n\ty0: %v\n", text, b26_6.Min.X.Floor(), b26_6.Min.Y.Floor())
+	bounds := image.Rect(
+		b26_6.Min.X.Floor(),
+		b26_6.Min.Y.Floor(),
+		//b26_6.Min.Y.Floor()-6,
+		b26_6.Max.X.Ceil(),
+		b26_6.Max.Y.Ceil()+4,
+		//pixfont.MeasureString(text),
+		//pixfont.DefaultFont.GetHeight()/2,
+	)
+	drawer.Dst = image.NewRGBA(bounds)
+	drawer.DrawString(text)
+
+	scaled := image.Rect(
+		drawer.Dst.Bounds().Min.X,
+		drawer.Dst.Bounds().Min.Y,
+		int(float32(drawer.Dst.Bounds().Max.X)*scale),
+		int(float32(drawer.Dst.Bounds().Max.Y)*scale),
+	)
+
+	dst := image.NewRGBA(scaled)
+
+	draw.CatmullRom.Scale(dst, dst.Rect, drawer.Dst, drawer.Dst.Bounds(), draw.Over, nil)
+
+	//pixfont.DrawString(drawer.Dst, b26_6.Min.X.Floor(), b26_6.Min.Y.Floor(), text, clr)
+	return dst
+}
+
+func MakeTextScaledBestQualityImage(text string, face font.Face, clr color.Color, scale float32) image.Image {
+	drawer := &font.Drawer{
+		Src:  &image.Uniform{clr},
+		Face: face,
+		Dot:  fixed.P(0, 0),
+	}
+	b26_6, _ := drawer.BoundString(text)
+	//fmt.Printf("%v -> \n\tx0: %v\n\ty0: %v\n", text, b26_6.Min.X.Floor(), b26_6.Min.Y.Floor())
+	bounds := image.Rect(
+		b26_6.Min.X.Floor(),
+		b26_6.Min.Y.Floor(),
+		//b26_6.Min.Y.Floor()-6,
+		b26_6.Max.X.Ceil(),
+		b26_6.Max.Y.Ceil()+4,
+		//pixfont.MeasureString(text),
+		//pixfont.DefaultFont.GetHeight()/2,
+	)
+	drawer.Dst = image.NewRGBA(bounds)
+	drawer.DrawString(text)
+
+	scaled := image.Rect(
+		drawer.Dst.Bounds().Min.X,
+		drawer.Dst.Bounds().Min.Y,
+		int(float32(drawer.Dst.Bounds().Max.X)*scale),
+		int(float32(drawer.Dst.Bounds().Max.Y)*scale),
+	)
+
+	dst := image.NewRGBA(scaled)
+
+	draw.CatmullRom.Scale(dst, dst.Rect, drawer.Dst, drawer.Dst.Bounds(), draw.Over, nil)
+
+	//pixfont.DrawString(drawer.Dst, b26_6.Min.X.Floor(), b26_6.Min.Y.Floor(), text, clr)
+	return dst
 }
 
 func MakeRailAndProgressImage(r image.Rectangle, duration, progress int, col color.Color) (image.Image, image.Image, bool) {
