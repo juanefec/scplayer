@@ -6,8 +6,8 @@ import (
 	"image/draw"
 	"strings"
 
-	"github.com/faiface/gui"
-	"github.com/faiface/gui/win"
+	"github.com/juanefec/gui"
+	"github.com/juanefec/gui/win"
 	. "github.com/juanefec/scplayer/util"
 )
 
@@ -115,7 +115,7 @@ func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, search func(strin
 
 }
 
-const alphanumeric = "qwertyuiopasdfghjklzxcvbnm1234567890-"
+const alphanumeric = "qwertyuiopasdfghjklzxcvbnm1234567890-_"
 
 func isAlphanumeric(key rune) bool {
 	return strings.ContainsRune(alphanumeric, key)

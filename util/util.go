@@ -90,7 +90,7 @@ func MakeTextImage(text string, face font.Face, clr color.Color) image.Image {
 func MakeRailAndProgressImage(r image.Rectangle, duration, progress int, col color.Color) (image.Image, image.Image, bool) {
 	if r.Dx() >= 0 && r.Dy() >= 0 {
 		//off := r.Dx() / 12
-		pixs, pixe := r.Min.X+40, r.Max.X-45
+		pixs, pixe := r.Min.X+34, r.Max.X-50
 		rail := image.NewRGBA(r)
 		hline(rail, pixs, 60, pixe, col)
 

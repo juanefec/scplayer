@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
-	"log"
 	"time"
 
-	"github.com/faiface/gui"
+	"github.com/juanefec/gui"
 	"github.com/juanefec/scplayer/sc"
 
 	. "github.com/juanefec/scplayer/util"
 )
 
-func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan bool, next chan<- int, updateTitle chan<- string, updateVol <-chan float64, trigUpdateVol chan<- struct{}) {
+func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan bool, next chan<- int, updateTitle chan<- string, updateVol <-chan float64) {
 
 	redraw := func(r image.Rectangle, rail image.Image, progress image.Image, imgProgress image.Image, imgProgressTop image.Image) func(draw.Image) image.Rectangle {
 		return func(drw draw.Image) image.Rectangle {
@@ -43,18 +42,28 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 		done           = make(chan struct{})
 		doneTimer      = make(chan struct{})
 		playing        bool
+		//doneDownload   = make(chan struct{})
 	)
 
 	song := sc.Song{}
 
-	songTimer := func() {
+	songTimer := func(s string) {
+		imgProgress = MakeTextImage(song.Progress(), theme.Face, theme.Text)
+		imgProgressTop = MakeTextImage(song.Duration(), theme.Face, theme.Text)
+
+		if ra, pr, ok := MakeRailAndProgressImage(r, song.DurationMs(), song.ProgressMs(), theme.Rail); ok {
+			rail, progress = ra, pr
+		}
+
+		env.Draw() <- redraw(r, rail, progress, imgProgress, imgProgressTop)
 		for {
 			select {
 			case <-doneTimer:
+				fmt.Println(s, "exiting timer")
 				return
 
 			case <-time.After(time.Millisecond * 100):
-
+				//fmt.Println(s, "timing")
 				imgProgress = MakeTextImage(song.Progress(), theme.Face, theme.Text)
 				imgProgressTop = MakeTextImage(song.Duration(), theme.Face, theme.Text)
 
@@ -63,7 +72,6 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 				}
 
 				env.Draw() <- redraw(r, rail, progress, imgProgress, imgProgressTop)
-
 			}
 		}
 	}
@@ -88,24 +96,35 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 				}
 			}
 
-		case song = <-newsong:
+		case nsong := <-newsong:
+			fmt.Println("am i struck?")
 			song.Stop()
+
+			pvol := song.GetVolume()
+			song = nsong
 			if playing {
 				doneTimer <- struct{}{}
 			}
-
-			err := song.Play(done)
+			//err := song.Download(doneDownload)
+			fmt.Println("waiting 4 err?")
+			err := song.Play(pvol, done)
 			if err != nil {
-				log.Fatal(err.Error())
+				fmt.Println("asdasd")
+				fmt.Println(err)
+				continue
 			}
 			playing = true
-			go songTimer()
+			go songTimer(song.Artist + " - " + song.Title)
 
 			title := fmt.Sprintf("%v - %v", song.Artist, song.Title)
 
 			updateTitle <- title
-			trigUpdateVol <- struct{}{}
+			fmt.Println(" PASS   -  updateTitle <- title")
+			//trigUpdateVol <- struct{}{}
+			fmt.Println(" PASS   -  trigUpdateVol <- struct{}{}")
 			env.Draw() <- redraw(r, rail, progress, imgProgress, imgProgressTop)
+			fmt.Println(" PASS   -  env.Draw() <- redraw(r, rail, progress, imgProgress, imgProgressTop)")
+			fmt.Println("no")
 		case v := <-updateVol:
 			song.SetVolume(v)
 		case e, ok := <-env.Events():

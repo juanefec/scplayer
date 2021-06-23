@@ -24,7 +24,8 @@ func GetLikes(username string) ([]Song, error) {
 	sc, err := scp.New(scp.APIOptions{})
 
 	if err != nil {
-		log.Fatal(err.Error())
+		// log.Fatal(err.Error())
+		return nil, err
 	}
 
 	user, err := sc.GetUser(scp.GetUserOptions{
@@ -33,14 +34,15 @@ func GetLikes(username string) ([]Song, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("user [%v] not found", username)
-		//log.Fatal(err.Error())
+		//// log.Fatal(err.Error())
+		//return err
 	}
 
-	return getAllLikes(sc, user.ID, 0), nil
+	return getAllLikes(sc, user.ID, 0)
 
 }
 
-func getAllLikes(sc *scp.API, user int64, offset int) []Song {
+func getAllLikes(sc *scp.API, user int64, offset int) ([]Song, error) {
 	ls, err := sc.GetLikes(scp.GetLikesOptions{
 		ID:     user,
 		Type:   "track",
@@ -48,12 +50,14 @@ func getAllLikes(sc *scp.API, user int64, offset int) []Song {
 		Offset: offset,
 	})
 	if err != nil {
-		log.Fatal(err.Error())
+		// log.Fatal(err.Error())
+		return nil, err
 	}
 
 	l, err := ls.GetLikes()
 	if err != nil {
-		log.Fatal(err.Error())
+		// log.Fatal(err.Error())
+		return nil, err
 	}
 
 	songs := []Song{}
@@ -81,18 +85,20 @@ func getAllLikes(sc *scp.API, user int64, offset int) []Song {
 	// if ls.NextHref != "" {
 	// 	url, err := url.Parse(ls.NextHref)
 	// 	if err != nil {
-	// 		log.Fatal(err.Error())
+	// 		// log.Fatal(err.Error())
+	//		return nil, err
 	// 	}
 
 	// 	off, err := strconv.Atoi(url.Query()["offset"][0])
 	// 	if err != nil {
-	// 		log.Fatal(err.Error())
+	// 		// log.Fatal(err.Error())
+	//		return nil, err
 	// 	}
 
 	// 	songs = append(songs, getAllLikes(sc, user, off)...)
 	// }
 
-	return songs
+	return songs, nil
 }
 
 type Song struct {
@@ -107,24 +113,26 @@ type Song struct {
 	format     beep.Format
 }
 
-func (song *Song) Play(done chan<- struct{}) error {
-	sc, err := scp.New(scp.APIOptions{})
-
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	buffer := &bytes.Buffer{}
-
+func (song *Song) Play(vol float64, done chan<- struct{}) error {
 	// its a prop song to write on the browser probably.
 	if song.OriginalID == 0 {
 		done <- struct{}{}
 		return nil
 	}
 
+	sc, err := scp.New(scp.APIOptions{})
+
+	if err != nil {
+		// log.Fatal(err.Error())
+		return err
+	}
+
+	buffer := &bytes.Buffer{}
+
 	err = sc.DownloadTrack(song.data, buffer)
 	if err != nil {
-		log.Fatal(err.Error())
+		// log.Fatal(err.Error())
+
 		return err
 	}
 
@@ -147,7 +155,7 @@ func (song *Song) Play(done chan<- struct{}) error {
 	volume := &effects.Volume{
 		Streamer: ctrl,
 		Base:     2,
-		Volume:   -4,
+		Volume:   vol,
 		Silent:   false,
 	}
 
@@ -157,6 +165,41 @@ func (song *Song) Play(done chan<- struct{}) error {
 	song.volume = volume
 	speaker.Play(song.volume)
 
+	return nil
+}
+
+func (song *Song) Download(done chan<- struct{}, cancel <-chan struct{}) error {
+	// its a prop song to write on the browser probably.
+	if song.OriginalID == 0 {
+		done <- struct{}{}
+		return nil
+	}
+
+	sc, err := scp.New(scp.APIOptions{})
+
+	if err != nil {
+		// log.Fatal(err.Error())
+		return err
+	}
+
+	buffer := &bytes.Buffer{}
+
+	err = sc.DownloadTrack(song.data, buffer)
+	if err != nil {
+		// log.Fatal(err.Error())
+		return err
+		//return err
+	}
+
+	streamer, format, err := mp3.Decode(ioutil.NopCloser(buffer))
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	song.format = format
+	song.streamer = streamer
+	//song.buffer = buffer
 	return nil
 }
 
@@ -171,6 +214,13 @@ func (song *Song) SetVolume(vol float64) {
 	song.volume.Silent = false
 	rs, re := -6.5, 1.8
 	song.volume.Volume = util.MapFloat(float64(vol), 0, 9, rs, re)
+}
+
+func (song Song) GetVolume() float64 {
+	if song.volume == nil {
+		return -4.0
+	}
+	return song.volume.Volume
 }
 
 func (song Song) Progress() string {

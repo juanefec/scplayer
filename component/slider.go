@@ -6,12 +6,12 @@ import (
 	"image/draw"
 	"math"
 
-	"github.com/faiface/gui"
-	"github.com/faiface/gui/win"
+	"github.com/juanefec/gui"
+	"github.com/juanefec/gui/win"
 	. "github.com/juanefec/scplayer/util"
 )
 
-func VolumeSlider(env gui.Env, theme *Theme, trigUpdateVolume <-chan struct{}, changeVolume func(float64)) {
+func VolumeSlider(env gui.Env, theme *Theme, changeVolume func(float64)) {
 	volLevels := []image.Image{
 		MakeIconImage("volume_lvl-0"),
 		MakeIconImage("volume_lvl-1"),
@@ -49,8 +49,8 @@ func VolumeSlider(env gui.Env, theme *Theme, trigUpdateVolume <-chan struct{}, c
 
 	for {
 		select {
-		case <-trigUpdateVolume:
-			changeVolume(volf)
+		// case <-trigUpdateVolume:
+		// 	changeVolume(volf)
 		case e := <-env.Events():
 			switch e := e.(type) {
 			case win.MoMove:
@@ -103,12 +103,12 @@ func BrowserSlider(env gui.Env, theme *Theme, listenBrowser <-chan int, updateBr
 	var highr image.Rectangle
 	redraw := func(r image.Rectangle, over, pressed bool, browserPos image.Point, browserMaxY image.Point, playPos int) func(draw.Image) image.Rectangle {
 		return func(drw draw.Image) image.Rectangle {
-			col := theme.VolumeBg
-			if over {
-				col = theme.VolumeBgOver
-			}
+			// col := theme.VolumeBg
+			// if over {
+			// 	col = theme.VolumeBgOver
+			// }
 
-			draw.Draw(drw, r, &image.Uniform{col}, image.Point{}, draw.Src)
+			draw.Draw(drw, r, &image.Uniform{theme.Title}, image.Point{}, draw.Src)
 			mpos := Map(browserPos.Y, 0, browserMaxY.Y, r.Min.Y, r.Max.Y)
 			mposY := Map(r.Dy(), 0, browserMaxY.Y, r.Min.Y, r.Max.Y)
 			highr = image.Rect(
@@ -119,7 +119,7 @@ func BrowserSlider(env gui.Env, theme *Theme, listenBrowser <-chan int, updateBr
 			)
 			draw.DrawMask(
 				drw, highr.Intersect(r),
-				&image.Uniform{theme.HighlightSlider}, image.Point{},
+				&image.Uniform{theme.Background}, image.Point{},
 				&image.Uniform{color.Alpha{64}}, image.Point{},
 				draw.Over,
 			)
@@ -132,7 +132,7 @@ func BrowserSlider(env gui.Env, theme *Theme, listenBrowser <-chan int, updateBr
 			)
 			draw.DrawMask(
 				drw, currsong.Intersect(r),
-				&image.Uniform{theme.HighlightSlider}, image.Point{},
+				&image.Uniform{theme.Background}, image.Point{},
 				&image.Uniform{color.Alpha{94}}, image.Point{},
 				draw.Over,
 			)
