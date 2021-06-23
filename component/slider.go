@@ -120,7 +120,7 @@ func BrowserSlider(env gui.Env, theme *Theme, listenBrowser <-chan int, updateBr
 			draw.DrawMask(
 				drw, highr.Intersect(r),
 				&image.Uniform{theme.Background}, image.Point{},
-				&image.Uniform{color.Alpha{64}}, image.Point{},
+				&image.Uniform{color.Alpha{84}}, image.Point{},
 				draw.Over,
 			)
 			playpos := Map(playPos, 0, browserMaxY.Y, r.Min.Y, r.Max.Y)
@@ -133,7 +133,7 @@ func BrowserSlider(env gui.Env, theme *Theme, listenBrowser <-chan int, updateBr
 			draw.DrawMask(
 				drw, currsong.Intersect(r),
 				&image.Uniform{theme.Background}, image.Point{},
-				&image.Uniform{color.Alpha{94}}, image.Point{},
+				&image.Uniform{color.Alpha{144}}, image.Point{},
 				draw.Over,
 			)
 

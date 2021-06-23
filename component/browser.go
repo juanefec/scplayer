@@ -50,6 +50,7 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, m
 
 		return songs, lineHeight, namesImage
 	}
+
 	type pnext struct {
 		i   int
 		ogi int
@@ -63,7 +64,7 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, m
 				highlightR := image.Rect(
 					namesImage.Bounds().Min.X,
 					namesImage.Bounds().Min.Y+lineHeight*selected,
-					namesImage.Bounds().Max.X,
+					r.Max.X,
 					namesImage.Bounds().Min.Y+lineHeight*(selected+1),
 				)
 				highlightR = highlightR.Sub(position).Add(r.Min)
@@ -79,7 +80,7 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, view chan<- sc.Song, m
 					highlightR := image.Rect(
 						namesImage.Bounds().Min.X,
 						namesImage.Bounds().Min.Y+lineHeight*pnx.i,
-						namesImage.Bounds().Max.X,
+						r.Max.X,
 						namesImage.Bounds().Min.Y+lineHeight*(pnx.i+1),
 					)
 					highlightR = highlightR.Sub(position).Add(r.Min)

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"time"
 
 	"github.com/faiface/beep"
@@ -102,51 +101,26 @@ func getAllLikes(sc *scp.API, user int64, offset int) ([]Song, error) {
 }
 
 type Song struct {
-	Title      string
-	Artist     string
-	OriginalID int
-	duration   time.Duration
-	data       scp.Transcoding
-	volume     *effects.Volume
-	controller *beep.Ctrl
-	streamer   beep.StreamSeekCloser
-	format     beep.Format
+	Title        string
+	Artist       string
+	OriginalID   int
+	duration     time.Duration
+	data         scp.Transcoding
+	volume       *effects.Volume
+	controller   *beep.Ctrl
+	streamer     beep.StreamSeekCloser
+	format       beep.Format
+	buffer       *bytes.Buffer
+	isDownloaded bool
 }
 
 func (song *Song) Play(vol float64, done chan<- struct{}) error {
-	// its a prop song to write on the browser probably.
-	if song.OriginalID == 0 {
-		done <- struct{}{}
-		return nil
-	}
 
-	sc, err := scp.New(scp.APIOptions{})
-
-	if err != nil {
-		// log.Fatal(err.Error())
-		return err
-	}
-
-	buffer := &bytes.Buffer{}
-
-	err = sc.DownloadTrack(song.data, buffer)
-	if err != nil {
-		// log.Fatal(err.Error())
-
-		return err
-	}
-
-	streamer, format, err := mp3.Decode(ioutil.NopCloser(buffer))
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-
-	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
+	speaker.Init(song.format.SampleRate, song.format.SampleRate.N(time.Second/10))
 
 	ctrl := &beep.Ctrl{
-		Streamer: beep.Seq(streamer, beep.Callback(func() {
-			buffer.Reset()
+		Streamer: beep.Seq(song.streamer, beep.Callback(func() {
+			song.buffer.Reset()
 			done <- struct{}{}
 		})),
 		Paused: false,
@@ -159,8 +133,6 @@ func (song *Song) Play(vol float64, done chan<- struct{}) error {
 		Silent:   false,
 	}
 
-	song.format = format
-	song.streamer = streamer
 	song.controller = ctrl
 	song.volume = volume
 	speaker.Play(song.volume)
@@ -168,11 +140,11 @@ func (song *Song) Play(vol float64, done chan<- struct{}) error {
 	return nil
 }
 
-func (song *Song) Download(done chan<- struct{}, cancel <-chan struct{}) error {
+func (song *Song) Download(done chan<- int) error {
 	// its a prop song to write on the browser probably.
 	if song.OriginalID == 0 {
-		done <- struct{}{}
-		return nil
+		//done <- 0
+		return fmt.Errorf("error")
 	}
 
 	sc, err := scp.New(scp.APIOptions{})
@@ -193,13 +165,15 @@ func (song *Song) Download(done chan<- struct{}, cancel <-chan struct{}) error {
 
 	streamer, format, err := mp3.Decode(ioutil.NopCloser(buffer))
 	if err != nil {
-		log.Fatal(err)
+		//log.Fatal(err)
 		return err
 	}
 
 	song.format = format
 	song.streamer = streamer
-	//song.buffer = buffer
+	song.buffer = buffer
+	song.isDownloaded = true
+	done <- song.OriginalID
 	return nil
 }
 
@@ -216,8 +190,8 @@ func (song *Song) SetVolume(vol float64) {
 	song.volume.Volume = util.MapFloat(float64(vol), 0, 9, rs, re)
 }
 
-func (song Song) GetVolume() float64 {
-	if song.volume == nil {
+func (song *Song) GetVolume() float64 {
+	if song == nil || song.volume == nil {
 		return -4.0
 	}
 	return song.volume.Volume
@@ -253,8 +227,8 @@ func (song Song) DurationMs() int {
 	return int(song.duration / time.Millisecond)
 }
 
-func (song Song) Resume() error {
-	if song.controller == nil {
+func (song *Song) Resume() error {
+	if song == nil || song.controller == nil {
 		return errors.New("not playing")
 	}
 	song.controller.Paused = false
@@ -268,6 +242,10 @@ func (song Song) Pause() {
 }
 
 func (song Song) Stop() {
+	speaker.Clear()
+}
+
+func ClearSpeaker() {
 	speaker.Clear()
 }
 

@@ -16,7 +16,9 @@ Thanks [faiface](http://github.com/faiface) allways giving out really good examp
 ![newlook](newlook.png)
 
 
-
+### TODO:
+ - with `tab` open the playlist section on the browser, this displays the the current song and all the ones marked `next` in order
+ - fix lots of duplicated code
 ### Main dependencies
  - `github.com/faiface/beep`
  - `github.com/juanefec/gui`
