@@ -228,7 +228,7 @@ func (song Song) DurationMs() int {
 }
 
 func (song *Song) Resume() error {
-	if song == nil || song.controller == nil {
+	if song.controller == nil {
 		return errors.New("not playing")
 	}
 	song.controller.Paused = false

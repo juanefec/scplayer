@@ -24,7 +24,7 @@ func VolumeSlider(env gui.Env, theme *Theme, changeVolume func(float64)) {
 		MakeIconImage("volume_lvl-8"),
 		MakeIconImage("volume_lvl-9"),
 	}
-	vol := 4
+	vol := 3
 	volf := float64(vol)
 	volmin, volmax := 0, 9
 
@@ -49,8 +49,6 @@ func VolumeSlider(env gui.Env, theme *Theme, changeVolume func(float64)) {
 
 	for {
 		select {
-		// case <-trigUpdateVolume:
-		// 	changeVolume(volf)
 		case e := <-env.Events():
 			switch e := e.(type) {
 			case win.MoMove:
@@ -95,19 +93,12 @@ func VolumeSlider(env gui.Env, theme *Theme, changeVolume func(float64)) {
 		}
 
 	}
-
-	//close(env.Draw())
 }
 
 func BrowserSlider(env gui.Env, theme *Theme, listenBrowser <-chan int, updateBrowser chan<- int, listenNewBrowser <-chan int, playingPos <-chan int) {
 	var highr image.Rectangle
 	redraw := func(r image.Rectangle, over, pressed bool, browserPos image.Point, browserMaxY image.Point, playPos int) func(draw.Image) image.Rectangle {
 		return func(drw draw.Image) image.Rectangle {
-			// col := theme.VolumeBg
-			// if over {
-			// 	col = theme.VolumeBgOver
-			// }
-
 			draw.Draw(drw, r, &image.Uniform{theme.Title}, image.Point{}, draw.Src)
 			mpos := Map(browserPos.Y, 0, browserMaxY.Y, r.Min.Y, r.Max.Y)
 			mposY := Map(r.Dy(), 0, browserMaxY.Y, r.Min.Y, r.Max.Y)
@@ -150,8 +141,6 @@ func BrowserSlider(env gui.Env, theme *Theme, listenBrowser <-chan int, updateBr
 		browserMaxY image.Point
 
 		playPos int
-
-		//pressedAt int
 	)
 
 	move := func(p image.Point) int {
@@ -216,6 +205,4 @@ func BrowserSlider(env gui.Env, theme *Theme, listenBrowser <-chan int, updateBr
 		}
 
 	}
-
-	//close(env.Draw())
 }
