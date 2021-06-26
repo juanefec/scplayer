@@ -21,12 +21,16 @@ func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, search func(strin
 		return func(drw draw.Image) image.Rectangle {
 			if isOpen {
 				draw.Draw(drw, r, &image.Uniform{theme.Infobar}, image.Point{}, draw.Src)
-				DrawCentered(drw, r, text, draw.Over)
+				textRect := r
+				textRect.Min.X = textRect.Min.X + icon.Bounds().Dx() + 10 // :)
+				DrawLeftCentered(drw, textRect, text, draw.Over)
 				DrawLeftCentered(drw, r, icon, draw.Over)
 				return r
 			}
 			draw.Draw(drw, r, &image.Uniform{theme.Infobar}, image.Point{}, draw.Src)
-			DrawCentered(drw, r, info, draw.Over)
+			textRect := r
+			textRect.Min.X = textRect.Min.X + icon.Bounds().Dx() + 10 // :)
+			DrawLeftCentered(drw, textRect, info, draw.Over)
 			return r
 		}
 	}
@@ -45,7 +49,7 @@ func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, search func(strin
 	for {
 		select {
 		case nf := <-newInfo:
-			info = MakeTextScaledImage(nf, theme.Face, theme.Text, 0.9)
+			info = MakeTextImage(nf, theme.Face, theme.Text)
 			env.Draw() <- redraw(r, text, icon, info, isOpen)
 		case e, ok := <-env.Events():
 			if !ok {

@@ -15,7 +15,7 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-func Browser(env gui.Env, theme *Theme, cd <-chan string, song2player chan<- sc.Song, move <-chan int, pausebtn chan<- bool, reloadUser <-chan string, newInfo chan<- string, gotop <-chan struct{}, gotosong <-chan struct{}, listenBrowserSlider <-chan int, newBrowserSlider chan<- int, updateBrowserSlider chan<- int, playingPos chan<- int) {
+func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<- sc.Song, move <-chan int, pausebtn chan<- bool, reloadUser <-chan string, newInfo chan<- string, gotop <-chan struct{}, gotosong <-chan struct{}, listenBrowserSlider <-chan int, newBrowserSlider chan<- int, updateBrowserSlider chan<- int, playingPos chan<- int) {
 	username := "kr3a71ve"
 
 	reload := func(songs []sc.Song) ([]sc.Song, int, *image.RGBA) {
@@ -169,6 +169,8 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, song2player chan<- sc.
 		selected         = -1
 		selectedOGID     = -1
 
+		userResource string // "likes" || "tracks"
+
 		playnexts    []pnext
 		showPlaynext bool
 	)
@@ -177,12 +179,26 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, song2player chan<- sc.
 	playnextsImage := reloadPlaynext(songs, playnexts)
 
 	refresh := func() {
-		songs, err = sc.GetLikes(username)
-		if err != nil {
-			songs = []sc.Song{
-				{Artist: "- - - - - - -", Title: fmt.Sprintf("- - - - >  %v                 ", err.Error())},
+
+		loadInfo := ""
+		if userResource == "tracks" {
+			songs, err = sc.GetTracks(username)
+			if err != nil {
+				songs = []sc.Song{
+					{Artist: "- - - - - - -", Title: fmt.Sprintf("- - - - >  %v                 ", err.Error())},
+				}
 			}
+			loadInfo = fmt.Sprintf("%v   %d tracks.", username, len(songs))
+		} else {
+			songs, err = sc.GetLikes(username)
+			if err != nil {
+				songs = []sc.Song{
+					{Artist: "- - - - - - -", Title: fmt.Sprintf("- - - - >  %v                 ", err.Error())},
+				}
+			}
+			loadInfo = fmt.Sprintf("%v   %d likes.", username, len(songs))
 		}
+
 		songs, lineHeight, namesImage = reload(songs)
 		position = image.Point{}
 		playnexts = []pnext{}
@@ -192,7 +208,7 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, song2player chan<- sc.
 				selected = i
 			}
 		}
-		newInfo <- fmt.Sprintf("listed %d likes from user: %s", len(songs), username)
+		newInfo <- loadInfo
 		newBrowserSlider <- namesImage.Rect.Dy()
 		env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
 		updateBrowserSlider <- position.Y
@@ -353,7 +369,7 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, song2player chan<- sc.
 	}
 
 	moveSong := func(m int) {
-		if selected >= -1 && selected < len(songs)+1 {
+		if selected >= -1 && selected < len(songs)+1 && len(songs) > 0 {
 			if selected == 0 && m == -1 {
 				return
 			}
@@ -370,8 +386,9 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, song2player chan<- sc.
 			} else {
 				selected = selected + m
 			}
-			if selected > len(songs)-1 {
-				selected = 0
+			if selected < 0 && selected > len(songs)-1 {
+				selected = -1
+				return
 			}
 			if selected < 0 || songs[selected].OriginalID == 0 {
 				return
@@ -422,6 +439,16 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, song2player chan<- sc.
 		env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
 	}
 
+	tracks := func() {
+		userResource = "tracks"
+		refresh()
+	}
+
+	likes := func() {
+		userResource = "likes"
+		refresh()
+	}
+
 	for {
 		select {
 		case y := <-listenBrowserSlider:
@@ -432,12 +459,16 @@ func Browser(env gui.Env, theme *Theme, cd <-chan string, song2player chan<- sc.
 			go2currentsong()
 		case newuser := <-reloadUser:
 			loadNew(newuser)
-		case action := <-cd:
+		case action := <-action:
 			switch action {
 			case "refresh":
 				refresh()
 			case "shuffle":
 				shuffle()
+			case "tracks":
+				tracks()
+			case "likes":
+				likes()
 			}
 		case m := <-move:
 			moveSong(m)

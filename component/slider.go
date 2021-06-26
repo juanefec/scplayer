@@ -181,6 +181,16 @@ func BrowserSlider(env gui.Env, theme *Theme, listenBrowser <-chan int, updateBr
 				rclickable = r
 				rclickable.Max.Y = r.Max.Y - highr.Dy()
 				newPressed := e.Point.In(rclickable)
+				componentPressed := e.Point.In(r)
+				if componentPressed != pressed && newPressed == pressed {
+					pressed = componentPressed
+					mto := move(image.Pt(0, rclickable.Max.Y))
+					browserPos.Y = mto
+					//pressedAt = e.Point.Y
+					env.Draw() <- redraw(r, over, pressed, browserPos, browserMaxY, playPos)
+					updateBrowser <- mto
+					continue
+				}
 				if newPressed != pressed {
 					pressed = newPressed
 					mto := move(e.Point)

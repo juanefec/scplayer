@@ -12,8 +12,97 @@ import (
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/speaker"
 	"github.com/juanefec/scplayer/util"
-	scp "github.com/zackradisic/soundcloud-api"
+	scp "github.com/juanefec/soundcloud-api"
 )
+
+var url = "https://api-v2.soundcloud.com/stream/users/188669904?offset=2021-03-31T06%3A19%3A56.000Z%2Ctracks%2C01019580628&limit=10&client_id=ahAJuiWvqPHUWMtUhizqN5QaITxmOwTN&app_version=1624267273&app_locale=es"
+
+var url2 = "https://api-v2.soundcloud.com/users/188669904/tracks?representation=&client_id=ahAJuiWvqPHUWMtUhizqN5QaITxmOwTN&limit=20&offset=0&linked_partitioning=1&app_version=1624267273&app_locale=es"
+
+func GetTracks(username string) ([]Song, error) {
+	if username == "" {
+		return nil, fmt.Errorf("empty username")
+	}
+
+	sc, err := scp.New(scp.APIOptions{})
+
+	if err != nil {
+		// log.Fatal(err.Error())
+		return nil, err
+	}
+
+	user, err := sc.GetUser(scp.GetUserOptions{
+		ProfileURL: "https://soundcloud.com/" + username,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("user [%v] not found", username)
+		//// log.Fatal(err.Error())
+		//return err
+	}
+
+	return getAllTracks(sc, user.ID, 0)
+
+}
+
+func getAllTracks(sc *scp.API, user int64, offset int) ([]Song, error) {
+	ls, err := sc.GetTracklist(scp.GetTracklistOptions{
+		ID:     user,
+		Type:   "tracklist",
+		Limit:  200,
+		Offset: offset,
+	})
+	if err != nil {
+		// log.Fatal(err.Error())
+		return nil, err
+	}
+
+	tks, err := ls.GetTracks()
+	if err != nil {
+		// log.Fatal(err.Error())
+		return nil, err
+	}
+
+	songs := []Song{}
+	for _, trk := range tks {
+		if len(trk.Media.Transcodings) > 0 {
+			s := Song{
+				Title:      trk.Title,
+				Artist:     trk.User.Username,
+				OriginalID: int(trk.ID),
+				duration:   time.Duration(trk.FullDurationMS * 1000000),
+				data:       trk.Media.Transcodings[0],
+			}
+
+			songs = append(songs, s)
+		}
+	}
+
+	// Recursion disabled for developing, it takes some time to bring all tracks sometimes.
+	//
+	// After mapping SC Tracks to Songs we look for the sc_response.NextHref, this prop
+	// contains the url that follows your search, this way you will be able to retrive all
+	// the list.
+	// Here I just take the offset value form the url.Query() and pass it recusively
+
+	// if ls.NextHref != "" {
+	// 	url, err := url.Parse(ls.NextHref)
+	// 	if err != nil {
+	// 		// log.Fatal(err.Error())
+	//		return nil, err
+	// 	}
+
+	// 	off, err := strconv.Atoi(url.Query()["offset"][0])
+	// 	if err != nil {
+	// 		// log.Fatal(err.Error())
+	//		return nil, err
+	// 	}
+
+	// 	songs = append(songs, getAllLikes(sc, user, off)...)
+	// }
+
+	return songs, nil
+}
 
 func GetLikes(username string) ([]Song, error) {
 	if username == "" {
@@ -42,7 +131,7 @@ func GetLikes(username string) ([]Song, error) {
 }
 
 func getAllLikes(sc *scp.API, user int64, offset int) ([]Song, error) {
-	ls, err := sc.GetLikes(scp.GetLikesOptions{
+	ls, err := sc.GetTracklist(scp.GetTracklistOptions{
 		ID:     user,
 		Type:   "track",
 		Limit:  200,

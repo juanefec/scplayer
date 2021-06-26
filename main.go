@@ -95,11 +95,23 @@ func run() {
 
 	go component.Title(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 5, 10, 10, 200, 1920), 0, 1, 16, 0, 40), theme, updateTitle)
 
-	go component.VolumeSlider(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 0, 1, 14, 0, 60), 1, 2, 16, 40, 90), theme, func(v float64) {
+	go component.VolumeSlider(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 0, 1, 14, 0, 52), 1, 2, 16, 40, 90), theme, func(v float64) {
 		updateVolume <- v
 	})
 
-	go component.Player(EvenVerticalMinMaxY(EvenHorizontalMinX(mux.MakeEnv(), 1, 14, 14, 60), 1, 2, 16, 40, 90), theme, song, pausebtn, move, updateTitle, updateVolume)
+	go component.Player(EvenVerticalMinMaxY(EvenHorizontalMinX(mux.MakeEnv(), 1, 14, 14, 52), 1, 2, 16, 40, 90), theme, song, pausebtn, move, updateTitle, updateVolume)
+
+	go component.Button(EvenVerticalMinMaxY(FixedFromLeft(mux.MakeEnv(), 0, 26), 2, 3, 16, 90, 114), theme, "tracks", func() {
+		action <- "tracks"
+	})
+
+	go component.Button(EvenVerticalMinMaxY(FixedFromLeft(mux.MakeEnv(), 26, 52), 2, 3, 16, 90, 114), theme, "likes", func() {
+		action <- "likes"
+	})
+
+	go component.Infobar(EvenVerticalMinMaxY(EvenHorizontalRightMinMaxX(mux.MakeEnv(), 0, 1, 1, 52, 52), 2, 3, 16, 90, 114), theme, newInfo, func(searchterm string) {
+		reloadUser <- searchterm
+	})
 
 	go component.Button(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 0, 26), 2, 3, 16, 90, 114), theme, "gotop", func() {
 		gotop <- struct{}{}
@@ -107,10 +119,6 @@ func run() {
 
 	go component.Button(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 26, 52), 2, 3, 16, 90, 114), theme, "gotosong", func() {
 		gotosong <- struct{}{}
-	})
-
-	go component.Infobar(EvenVerticalMinMaxY(EvenHorizontalRightMinX(mux.MakeEnv(), 0, 1, 1, 52), 2, 3, 16, 90, 114), theme, newInfo, func(searchterm string) {
-		reloadUser <- searchterm
 	})
 
 	go component.Browser(EvenVerticalMinMaxY(EvenHorizontalRightMinX(mux.MakeEnv(), 0, 1, 1, 52), 3, 16, 16, 114, 1080), theme, action, song, move, pausebtnstatus, reloadUser, newInfo, gotop, gotosong, updateBrowser, listenNewBrowser, listenBrowser, playingPos)

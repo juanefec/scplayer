@@ -189,41 +189,79 @@ func EvenHorizontalMinMaxX(env gui.Env, minI, maxI, n, minX, maxX int) gui.Env {
 	return &envPair{out, env.Draw()}
 }
 
-func EvenHorizontalRightMinMaxX(env gui.Env, minI, maxI, n, minX, maxX int) gui.Env {
+// func EvenHorizontalRightMinMaxX(env gui.Env, minI, maxI, n, minX, maxX int) gui.Env {
+// 	out, in := gui.MakeEventsChan()
+
+// 	go func() {
+// 		for e := range env.Events() {
+// 			if resize, ok := e.(gui.Resize); ok {
+// 				out := false
+
+// 				dxr := resize.Max.X - minX
+// 				x1 := resize.Max.X
+// 				if minX < x1-dxr {
+// 					resize.Max.X = dxr - minX
+// 					out = true
+// 				}
+// 				if minX > x1-dxr {
+// 					resize.Max.X = dxr - minX
+// 					out = true
+// 				}
+
+// 				dxrmax := resize.Max.X - maxX
+// 				if maxX < x1-dxrmax {
+// 					resize.Max.X = dxrmax - maxX
+// 					out = true
+// 				}
+// 				if maxX > x1-dxrmax {
+// 					resize.Max.X = dxrmax - maxX
+// 					out = true
+// 				}
+
+// 				if out {
+// 					in <- resize
+// 					continue
+// 				}
+// 				x0, x1 := resize.Min.X, resize.Max.X
+// 				resize.Min.X, resize.Max.X = x0+(x1-x0)*minI/n, x0+(x1-x0)*maxI/n
+// 				in <- resize
+// 			} else {
+// 				in <- e
+// 			}
+// 		}
+// 		close(in)
+// 	}()
+
+// 	return &envPair{out, env.Draw()}
+// }
+
+func FixedFromRight(env gui.Env, minX, maxX int) gui.Env {
 	out, in := gui.MakeEventsChan()
 
 	go func() {
 		for e := range env.Events() {
 			if resize, ok := e.(gui.Resize); ok {
-				out := false
-
-				dxr := resize.Max.X - minX
 				x1 := resize.Max.X
-				if minX < x1-dxr {
-					resize.Max.X = dxr - minX
-					out = true
-				}
-				if minX > x1-dxr {
-					resize.Max.X = dxr - minX
-					out = true
-				}
+				resize.Max.X = x1 - minX
+				resize.Min.X = x1 - maxX
+				in <- resize
+			} else {
+				in <- e
+			}
+		}
+		close(in)
+	}()
 
-				dxrmax := resize.Max.X - maxX
-				if maxX < x1-dxrmax {
-					resize.Max.X = dxrmax - maxX
-					out = true
-				}
-				if maxX > x1-dxrmax {
-					resize.Max.X = dxrmax - maxX
-					out = true
-				}
+	return &envPair{out, env.Draw()}
+}
+func FixedFromLeft(env gui.Env, minX, maxX int) gui.Env {
+	out, in := gui.MakeEventsChan()
 
-				if out {
-					in <- resize
-					continue
-				}
-				x0, x1 := resize.Min.X, resize.Max.X
-				resize.Min.X, resize.Max.X = x0+(x1-x0)*minI/n, x0+(x1-x0)*maxI/n
+	go func() {
+		for e := range env.Events() {
+			if resize, ok := e.(gui.Resize); ok {
+				resize.Max.X = maxX
+				resize.Min.X = minX
 				in <- resize
 			} else {
 				in <- e
@@ -235,15 +273,39 @@ func EvenHorizontalRightMinMaxX(env gui.Env, minI, maxI, n, minX, maxX int) gui.
 	return &envPair{out, env.Draw()}
 }
 
-func FixedFromRight(env gui.Env, minX, maxX int) gui.Env {
+func EvenHorizontalRightMinMaxX(env gui.Env, minI, maxI, n, minX, maxX int) gui.Env {
 	out, in := gui.MakeEventsChan()
 
 	go func() {
 		for e := range env.Events() {
 			if resize, ok := e.(gui.Resize); ok {
-				x1 := resize.Max.X
-				resize.Max.X = x1 - minX
-				resize.Min.X = x1 - maxX
+				//out := false
+				// dxr := resize.Max.X - minX
+				// x1 := resize.Max.X
+				// //resize.Max.X = dxr
+
+				// if minX < x1-dxr {
+				// 	fmt.Println("rtl", x1, " - ", dxr, " = ", x1-dxr)
+				// 	resize.Max.X = dxr - minX
+				// 	out = true
+				// }
+				// if minX > x1-dxr {
+				// 	fmt.Println("ltr", x1, " - ", dxr, " = ", x1-dxr)
+				// 	resize.Max.X = dxr - minX
+				// 	out = true
+				// }
+
+				// if out {
+				// 	fmt.Println(resize.Min.X, resize.Max.X, minX, dxr)
+				// 	in <- resize
+				// 	continue
+				// }
+
+				resize.Max.X = resize.Max.X - minX
+				resize.Min.X = resize.Min.X + minX
+				// x1 := resize.Max.X
+				// x0 := resize.Min.X
+				// resize.Min.X, resize.Max.X = x0+(x1-x0)*minI/n, x0+(x1-x0)*maxI/n
 				in <- resize
 			} else {
 				in <- e

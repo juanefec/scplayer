@@ -86,10 +86,6 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 	songTimer := func() {
 		for {
 			select {
-			case _, ok := <-env.Events():
-				if !ok {
-					return
-				}
 			case <-doneTimer:
 				return
 
@@ -134,6 +130,19 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 		}
 	}
 
+	eventLoop := func() {
+		for e := range env.Events() {
+			switch e := e.(type) {
+			case gui.Resize:
+				r = e.Rectangle
+				env.Draw() <- redraw(r, rail, progress, imgProgress, imgProgressTop)
+			}
+		}
+		exitSongStarter <- struct{}{}
+		close(env.Draw())
+	}
+
+	go eventLoop()
 	go songStarter(exitSongStarter)
 
 	for {
@@ -146,17 +155,7 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 			loadSong(nsong)
 		case v := <-updateVol:
 			song.SetVolume(v)
-		case e, ok := <-env.Events():
-			if !ok {
-				close(env.Draw())
-				exitSongStarter <- struct{}{}
-				return
-			}
-			switch e := e.(type) {
-			case gui.Resize:
-				r = e.Rectangle
-				env.Draw() <- redraw(r, rail, progress, imgProgress, imgProgressTop)
-			}
+
 		}
 	}
 }
