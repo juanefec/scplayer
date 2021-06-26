@@ -18,12 +18,17 @@ import (
 func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<- sc.Song, move <-chan int, pausebtn chan<- bool, reloadUser <-chan string, newInfo chan<- string, gotop <-chan struct{}, gotosong <-chan struct{}, listenBrowserSlider <-chan int, newBrowserSlider chan<- int, updateBrowserSlider chan<- int, playingPos chan<- int) {
 	username := "kr3a71ve"
 
+	type pnext struct {
+		sc.Song
+		i int
+	}
+
 	reload := func(songs []sc.Song) ([]sc.Song, int, *image.RGBA) {
 
 		var images []image.Image
 		//fmt.Printf("Listed %v songs.\n", len(songs))
 		for _, song := range songs {
-			images = append(images, MakeTextImage(fmt.Sprintf("%v - %v", song.Artist, song.Title), theme.Face, theme.Text))
+			images = append(images, MakeTextImage(fmt.Sprintf("[%v]--> %v - %v", song.Username, song.Artist, song.Title), theme.Face, theme.Text))
 		}
 
 		const inset = 4
@@ -51,20 +56,15 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 		return songs, lineHeight, namesImage
 	}
 
-	type pnext struct {
-		i   int
-		ogi int
-	}
-
 	reloadPlaynext := func(songs []sc.Song, pnexts []pnext) *image.RGBA {
 		var images []image.Image
-		for _, s := range songs {
-			for _, ns := range pnexts {
-				if s.OriginalID == ns.ogi {
-					images = append(images, MakeTextImage(fmt.Sprintf("%v - %v", s.Artist, s.Title), theme.Face, theme.Text))
-				}
+
+		for _, ns := range pnexts {
+			if ns.OriginalID != 0 {
+				images = append(images, MakeTextImage(fmt.Sprintf("%v - %v", ns.Artist, ns.Title), theme.Face, theme.Text))
 			}
 		}
+
 		const inset = 4
 
 		var width int
@@ -90,14 +90,14 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 		return namesImage
 	}
 
-	redraw := func(r image.Rectangle, selected int, position, positionPlaynext image.Point, lineHeight int, namesImage, playnextNamesImage image.Image, playnexts []pnext, showPlaynext bool) func(draw.Image) image.Rectangle {
+	redraw := func(r image.Rectangle, selected int, position, positionPlaynext image.Point, lineHeight int, namesImage, playnextNamesImage image.Image, playnextsView []pnext, showPlaynext bool) func(draw.Image) image.Rectangle {
 		if showPlaynext {
 			return func(drw draw.Image) image.Rectangle {
 				draw.Draw(drw, r, &image.Uniform{theme.Background}, image.Point{}, draw.Src)
 				draw.Draw(drw, r, playnextNamesImage, positionPlaynext, draw.Over)
 
-				if len(playnexts) > 0 {
-					for i, _ := range playnexts {
+				if len(playnextsView) > 0 {
+					for i, _ := range playnextsView {
 						highlightR := image.Rect(
 							playnextNamesImage.Bounds().Min.X,
 							playnextNamesImage.Bounds().Min.Y+lineHeight*i,
@@ -134,8 +134,8 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 					draw.Over,
 				)
 			}
-			if len(playnexts) > 0 {
-				for _, pnx := range playnexts {
+			if len(playnextsView) > 0 {
+				for _, pnx := range playnextsView {
 					highlightR := image.Rect(
 						namesImage.Bounds().Min.X,
 						namesImage.Bounds().Min.Y+lineHeight*pnx.i,
@@ -161,6 +161,10 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 		{Artist: "     type ENTER and fetch all the user likes.       < - - - - -", Title: "- - - >                                     "},
 	}
 
+	tracks := []sc.Song{}
+
+	likes := []sc.Song{}
+
 	var (
 		err              error
 		r                image.Rectangle
@@ -169,65 +173,108 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 		selected         = -1
 		selectedOGID     = -1
 
+		likesImage, tracksImage *image.RGBA
+		namesImage              = image.NewRGBA(r)
+		lineHeight              int
+
 		userResource string // "likes" || "tracks"
 
-		playnexts    []pnext
-		showPlaynext bool
+		playnexts            []pnext
+		playnextsViewMatches []pnext
+		showPlaynext         bool
+		mouseRbPressed       bool
 	)
 
-	songs, lineHeight, namesImage := reload(songs)
-	playnextsImage := reloadPlaynext(songs, playnexts)
+	tracks, lineHeight, tracksImage = reload(tracks)
+	likes, lineHeight, likesImage = reload(likes)
+	playnextsImage := reloadPlaynext(songs, playnextsViewMatches)
 
-	refresh := func() {
+	refresh := func(fetch bool) {
 
 		loadInfo := ""
+		playnextsViewMatches = []pnext{}
+		if fetch {
+			namesImage = image.NewRGBA(r)
+			playnextsImage = reloadPlaynext(songs, playnextsViewMatches)
+			env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
+			newInfo <- "loading..."
+			tracks, err = sc.GetTracks(username)
+			if err != nil {
+				tracks = []sc.Song{
+					{Artist: "- - - - - - -", Title: fmt.Sprintf("- - - - >  %v                 ", err.Error())},
+				}
+			}
+			likes, err = sc.GetLikes(username)
+			if err != nil {
+				likes = []sc.Song{
+					{Artist: "- - - - - - -", Title: fmt.Sprintf("- - - - >  %v                 ", err.Error())},
+				}
+			}
+		}
 		if userResource == "tracks" {
-			songs, err = sc.GetTracks(username)
-			if err != nil {
-				songs = []sc.Song{
-					{Artist: "- - - - - - -", Title: fmt.Sprintf("- - - - >  %v                 ", err.Error())},
+			loadInfo = fmt.Sprintf("   %d tracks.", len(tracks))
+			tracks, lineHeight, tracksImage = reload(tracks)
+			position = image.Point{}
+			//playnexts = []pnext{}
+			selected = -1
+			for i, s := range tracks {
+				if s.OriginalID == selectedOGID {
+					selected = i
+				}
+				for _, pnx := range playnexts {
+					if pnx.OriginalID == s.OriginalID {
+						pnx.i = i
+						playnextsViewMatches = append(playnextsViewMatches, pnx)
+					}
 				}
 			}
-			loadInfo = fmt.Sprintf("%v   %d tracks.", username, len(songs))
+			songs = tracks
+			namesImage = tracksImage
+			newInfo <- loadInfo
+			newBrowserSlider <- tracksImage.Rect.Dy()
+			updateBrowserSlider <- position.Y
+			playingPos <- lineHeight * selected
+			env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
 		} else {
-			songs, err = sc.GetLikes(username)
-			if err != nil {
-				songs = []sc.Song{
-					{Artist: "- - - - - - -", Title: fmt.Sprintf("- - - - >  %v                 ", err.Error())},
+			loadInfo = fmt.Sprintf("   %d likes.", len(likes))
+			likes, lineHeight, likesImage = reload(likes)
+			position = image.Point{}
+			//playnexts = []pnext{}
+			selected = -1
+			for i, s := range likes {
+				if s.OriginalID == selectedOGID {
+					selected = i
+				}
+				for _, pnx := range playnexts {
+					if pnx.OriginalID == s.OriginalID {
+						pnx.i = i
+						playnextsViewMatches = append(playnextsViewMatches, pnx)
+					}
 				}
 			}
-			loadInfo = fmt.Sprintf("%v   %d likes.", username, len(songs))
+			songs = likes
+			namesImage = likesImage
+			newInfo <- loadInfo
+			newBrowserSlider <- likesImage.Rect.Dy()
+			updateBrowserSlider <- position.Y
+			playingPos <- lineHeight * selected
+			env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
 		}
 
-		songs, lineHeight, namesImage = reload(songs)
-		position = image.Point{}
-		playnexts = []pnext{}
-		selected = -1
-		for i, s := range songs {
-			if s.OriginalID == selectedOGID {
-				selected = i
-			}
-		}
-		newInfo <- loadInfo
-		newBrowserSlider <- namesImage.Rect.Dy()
-		env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
-		updateBrowserSlider <- position.Y
-		playingPos <- lineHeight * selected
 	}
 
 	switchView := func() {
 		if !showPlaynext {
-			playnextsImage = reloadPlaynext(songs, playnexts)
+			playnextsViewMatches = playnexts
+			playnextsImage = reloadPlaynext(songs, playnextsViewMatches)
 			newBrowserSlider <- playnextsImage.Rect.Dy()
 			updateBrowserSlider <- positionPlaynext.Y
 		} else {
-			songs, lineHeight, namesImage = reload(songs)
-			newBrowserSlider <- namesImage.Rect.Dy()
-			updateBrowserSlider <- position.Y
+			refresh(false)
 		}
 		showPlaynext = !showPlaynext
 
-		env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
+		env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
 	}
 
 	scrollView := func(e win.MoScroll) {
@@ -248,7 +295,7 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 			}
 			if newP != position {
 				position = newP
-				env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
+				env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
 				updateBrowserSlider <- position.Y
 			}
 		} else {
@@ -267,13 +314,13 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 			}
 			if newP != positionPlaynext {
 				positionPlaynext = newP
-				env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
+				env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
 				updateBrowserSlider <- positionPlaynext.Y
 			}
 		}
 	}
 
-	clickEvent := func(e win.MoDown) {
+	clickEvent := func(e win.MoUp) {
 		if !e.Point.In(r) {
 			return
 		}
@@ -295,7 +342,7 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 					selectedOGID = songs[selected].OriginalID
 					song2player <- songs[selected]
 					pausebtn <- true
-					env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
+					env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
 					playingPos <- lineHeight * selected
 				}
 			case win.ButtonRight:
@@ -305,18 +352,27 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 
 				delete := -1
 				for ipn := 0; ipn < len(playnexts); ipn++ {
-					if songs[i].OriginalID == playnexts[ipn].ogi {
+					if songs[i].OriginalID == playnexts[ipn].OriginalID {
 						delete = ipn
 					}
 				}
 
 				if delete == -1 {
-					playnexts = append(playnexts, pnext{i: i, ogi: songs[i].OriginalID})
+					pnx := pnext{songs[i], i}
+
+					playnexts = append(playnexts, pnx)
+					playnextsViewMatches = append(playnextsViewMatches, pnx)
+
 				} else {
 					playnexts = append(playnexts[:delete], playnexts[delete+1:]...)
+					for ipn := 0; ipn < len(playnextsViewMatches); ipn++ {
+						if songs[i].OriginalID == playnextsViewMatches[ipn].OriginalID {
+							playnextsViewMatches = append(playnextsViewMatches[:ipn], playnextsViewMatches[ipn+1:]...)
+						}
+					}
 				}
 
-				env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
+				env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
 
 			}
 		} else {
@@ -335,8 +391,28 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 				selectedOGID = songs[pnx.i].OriginalID
 				song2player <- songs[pnx.i]
 				pausebtn <- true
-				env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
+				env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
 				//playingPos <- lineHeight * selected
+			case win.ButtonRight:
+				if playnexts[i].OriginalID == 0 {
+					return
+				}
+
+				delete := -1
+				for ipn := 0; ipn < len(playnexts); ipn++ {
+					if songs[playnexts[i].i].OriginalID == playnexts[ipn].OriginalID {
+						delete = ipn
+					}
+				}
+
+				if delete == -1 {
+					//playnexts = append(playnexts, pnext{songs[i], i})
+				} else {
+					playnexts = append(playnexts[:delete], playnexts[delete+1:]...)
+				}
+				playnextsViewMatches = playnexts
+				playnextsImage = reloadPlaynext(songs, playnextsViewMatches)
+				env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
 			}
 		}
 	}
@@ -353,7 +429,7 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 				selected = i
 			}
 			for pi, pnx := range playnexts {
-				if s.OriginalID == pnx.ogi {
+				if s.OriginalID == pnx.OriginalID {
 					playnexts[pi].i = i
 				}
 			}
@@ -362,31 +438,46 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 		if selected != -1 {
 			position = position.Add(image.Point{0, yPos})
 		}
-
-		env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
+		playnextsViewMatches = playnexts
+		playnextsImage = reloadPlaynext(songs, playnextsViewMatches)
+		env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
 		updateBrowserSlider <- position.Y
 		playingPos <- lineHeight * selected
 	}
 
 	moveSong := func(m int) {
+		if m > 0 && len(playnexts) > 0 {
+			s := playnexts[0]
+			if s.i >= 0 && s.i < len(songs) {
+				for i, sng := range songs {
+					if s.OriginalID == sng.OriginalID {
+						selected = i
+
+					}
+				}
+
+			}
+			selectedOGID = s.OriginalID
+			playnexts = playnexts[1:]
+			if showPlaynext {
+				playnextsViewMatches = playnexts
+			}
+			playnextsImage = reloadPlaynext(songs, playnextsViewMatches)
+			selectedOGID = s.OriginalID
+			song2player <- s.Song
+			pausebtn <- true
+			playingPos <- lineHeight * selected
+			env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
+			return
+		}
 		if selected >= -1 && selected < len(songs)+1 && len(songs) > 0 {
 			if selected == 0 && m == -1 {
 				return
 			}
-			if m > 0 {
-				if len(playnexts) > 0 {
-					selected = playnexts[0].i
-					selectedOGID = playnexts[0].ogi
-					playnexts = playnexts[1:]
-					playnextsImage = reloadPlaynext(songs, playnexts)
 
-				} else {
-					selected = selected + m
-				}
-			} else {
-				selected = selected + m
-			}
-			if selected < 0 && selected > len(songs)-1 {
+			selected = selected + m
+
+			if selected < 0 || selected > len(songs)-1 {
 				selected = -1
 				return
 			}
@@ -397,7 +488,7 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 			song2player <- songs[selected]
 			pausebtn <- true
 			playingPos <- lineHeight * selected
-			env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
+			env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
 		}
 	}
 
@@ -407,7 +498,7 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 		} else {
 			positionPlaynext = image.Point{0, y}
 		}
-		env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
+		env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
 	}
 
 	go2top := func() {
@@ -418,7 +509,7 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 			positionPlaynext = image.Point{}
 			updateBrowserSlider <- positionPlaynext.Y
 		}
-		env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
+		env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
 	}
 
 	go2currentsong := func() {
@@ -426,27 +517,63 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 		if selected != -1 {
 			position = image.Point{0, yPos}
 		}
-		env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
+		env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
 		updateBrowserSlider <- position.Y
+	}
 
+	showTracks := func() {
+		userResource = "tracks"
+		showPlaynext = false
+		refresh(false)
+	}
+
+	showLikes := func() {
+		userResource = "likes"
+		showPlaynext = false
+		refresh(false)
 	}
 
 	loadNew := func(newuser string) {
 		if newuser != "" {
 			username = newuser
-			refresh()
+			if userResource == "tracks" {
+				showTracks()
+			} else {
+				showLikes()
+			}
+			refresh(true)
 		}
-		env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
 	}
 
-	tracks := func() {
-		userResource = "tracks"
-		refresh()
-	}
+	mrbSelectPlaynext := func(e win.MoMove) {
+		if mouseRbPressed && !showPlaynext {
 
-	likes := func() {
-		userResource = "likes"
-		refresh()
+			if !e.Point.In(r) {
+				return
+			}
+
+			click := e.Point.Sub(r.Min).Add(position)
+			i := click.Y / lineHeight
+			if i < 0 || i >= len(songs) {
+				return
+			}
+			if songs[i].OriginalID == 0 {
+				return
+			}
+
+			if len(playnexts) > 0 {
+				last := playnexts[len(playnexts)-1].i
+				if i == last {
+					return
+				}
+			}
+			pnx := pnext{songs[i], i}
+
+			playnexts = append(playnexts, pnx)
+			playnextsViewMatches = append(playnextsViewMatches, pnx)
+
+			env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
+		}
 	}
 
 	for {
@@ -462,13 +589,15 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 		case action := <-action:
 			switch action {
 			case "refresh":
-				refresh()
+				refresh(true)
 			case "shuffle":
 				shuffle()
 			case "tracks":
-				tracks()
+				showTracks()
 			case "likes":
-				likes()
+				showLikes()
+			case "playlist":
+				switchView()
 			}
 		case m := <-move:
 			moveSong(m)
@@ -480,9 +609,18 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 			switch e := e.(type) {
 			case gui.Resize:
 				r = e.Rectangle
-				env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnexts, showPlaynext)
-			case win.MoDown:
+				env.Draw() <- redraw(r, selected, position, positionPlaynext, lineHeight, namesImage, playnextsImage, playnextsViewMatches, showPlaynext)
+			case win.MoUp:
 				clickEvent(e)
+				if e.Button == win.ButtonRight {
+					mouseRbPressed = false
+				}
+			case win.MoDown:
+				if e.Button == win.ButtonRight {
+					mouseRbPressed = true
+				}
+			case win.MoMove:
+				mrbSelectPlaynext(e)
 			case win.MoScroll:
 				scrollView(e)
 			case win.KbDown:

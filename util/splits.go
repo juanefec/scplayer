@@ -235,6 +235,23 @@ func EvenHorizontalMinMaxX(env gui.Env, minI, maxI, n, minX, maxX int) gui.Env {
 // 	return &envPair{out, env.Draw()}
 // }
 
+func FixedFromBounds(env gui.Env, minX, min2X int) gui.Env {
+	out, in := gui.MakeEventsChan()
+	go func() {
+		for e := range env.Events() {
+			if resize, ok := e.(gui.Resize); ok {
+				resize.Min.X = minX
+				resize.Max.X = resize.Max.X - min2X
+				in <- resize
+			} else {
+				in <- e
+			}
+		}
+		close(in)
+	}()
+	return &envPair{out, env.Draw()}
+}
+
 func FixedFromRight(env gui.Env, minX, maxX int) gui.Env {
 	out, in := gui.MakeEventsChan()
 
@@ -301,7 +318,7 @@ func EvenHorizontalRightMinMaxX(env gui.Env, minI, maxI, n, minX, maxX int) gui.
 				// 	continue
 				// }
 
-				resize.Max.X = resize.Max.X - minX
+				resize.Max.X = resize.Max.X - maxX
 				resize.Min.X = resize.Min.X + minX
 				// x1 := resize.Max.X
 				// x0 := resize.Min.X

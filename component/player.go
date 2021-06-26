@@ -12,7 +12,7 @@ import (
 	. "github.com/juanefec/scplayer/util"
 )
 
-func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan bool, next chan<- int, updateTitle chan<- string, updateVol <-chan float64) {
+func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan bool, next chan<- int, updateTitle chan<- string, updateVol <-chan float64, listeningTime chan<- string) {
 
 	redraw := func(r image.Rectangle, rail image.Image, progress image.Image, imgProgress image.Image, imgProgressTop image.Image) func(draw.Image) image.Rectangle {
 		return func(drw draw.Image) image.Rectangle {
@@ -45,6 +45,8 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 		playing         bool
 
 		pvol float64
+
+		playingTime time.Duration
 
 		song *sc.Song = &sc.Song{}
 	)
@@ -107,7 +109,13 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 		for {
 			select {
 			case <-exit:
+				doneTimer <- struct{}{}
 				return
+			case <-time.After(time.Second):
+				if playing {
+					playingTime += time.Second
+					listeningTime <- sc.DurationToStr(playingTime)
+				}
 			case dd := <-doneDownload:
 				if dd == song.OriginalID {
 					if playing {
@@ -147,6 +155,7 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 
 	for {
 		select {
+
 		case <-done:
 			songEnd()
 		case bplaying := <-pausebtn:
@@ -176,6 +185,7 @@ func Title(env gui.Env, theme *Theme, newTitle <-chan string) {
 
 	for {
 		select {
+
 		case t := <-newTitle:
 			imgTitle = MakeTextScaledImage(t, theme.Face, theme.Text, 1.5)
 			env.Draw() <- redraw(r, imgTitle)

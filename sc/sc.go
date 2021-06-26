@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/faiface/beep"
@@ -14,10 +15,6 @@ import (
 	"github.com/juanefec/scplayer/util"
 	scp "github.com/juanefec/soundcloud-api"
 )
-
-var url = "https://api-v2.soundcloud.com/stream/users/188669904?offset=2021-03-31T06%3A19%3A56.000Z%2Ctracks%2C01019580628&limit=10&client_id=ahAJuiWvqPHUWMtUhizqN5QaITxmOwTN&app_version=1624267273&app_locale=es"
-
-var url2 = "https://api-v2.soundcloud.com/users/188669904/tracks?representation=&client_id=ahAJuiWvqPHUWMtUhizqN5QaITxmOwTN&limit=20&offset=0&linked_partitioning=1&app_version=1624267273&app_locale=es"
 
 func GetTracks(username string) ([]Song, error) {
 	if username == "" {
@@ -66,9 +63,12 @@ func getAllTracks(sc *scp.API, user int64, offset int) ([]Song, error) {
 	songs := []Song{}
 	for _, trk := range tks {
 		if len(trk.Media.Transcodings) > 0 {
+			urlsplit := strings.Split(trk.User.PermalinkURL, "/")
+			username := urlsplit[len(urlsplit)-1]
 			s := Song{
 				Title:      trk.Title,
 				Artist:     trk.User.Username,
+				Username:   username,
 				OriginalID: int(trk.ID),
 				duration:   time.Duration(trk.FullDurationMS * 1000000),
 				data:       trk.Media.Transcodings[0],
@@ -151,9 +151,12 @@ func getAllLikes(sc *scp.API, user int64, offset int) ([]Song, error) {
 	songs := []Song{}
 	for _, li := range l {
 		if len(li.Track.Media.Transcodings) > 0 {
+			urlsplit := strings.Split(li.Track.User.PermalinkURL, "/")
+			username := urlsplit[len(urlsplit)-1]
 			s := Song{
 				Title:      li.Track.Title,
 				Artist:     li.Track.User.Username,
+				Username:   username,
 				OriginalID: int(li.Track.ID),
 				duration:   time.Duration(li.Track.FullDurationMS * 1000000),
 				data:       li.Track.Media.Transcodings[0],
@@ -193,6 +196,7 @@ type Song struct {
 	Title        string
 	Artist       string
 	OriginalID   int
+	Username     string
 	duration     time.Duration
 	data         scp.Transcoding
 	volume       *effects.Volume
@@ -294,11 +298,11 @@ func (song Song) Progress() string {
 	t := song.format.SampleRate.D(song.streamer.Position())
 	speaker.Unlock()
 
-	return durationToStr(t)
+	return DurationToStr(t)
 }
 
 func (song Song) Duration() string {
-	return durationToStr(song.duration)
+	return DurationToStr(song.duration)
 }
 
 func (song Song) ProgressMs() int {
@@ -338,7 +342,7 @@ func ClearSpeaker() {
 	speaker.Clear()
 }
 
-func durationToStr(d time.Duration) string {
+func DurationToStr(d time.Duration) string {
 	h, m, s := 0, 0, 0
 	{
 		d = d.Round(time.Second)

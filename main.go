@@ -42,6 +42,9 @@ func run() {
 		ButtonUp:         color.RGBA{0x82, 0x55, 0x84, 0xff},
 		ButtonDown:       color.RGBA{0x89, 0x70, 0x8f, 0xff},
 		ButtonOver:       color.RGBA{0xAA, 0x98, 0xAE, 0xff},
+		TextBoxUp:        color.RGBA{0x3D, 0x10, 0x3B, 0xff},
+		TextBoxDown:      color.RGBA{0x89, 0x70, 0x8f, 0xff},
+		TextBoxOver:      color.RGBA{0x5B, 0x20, 0x5B, 0xff},
 		VolumeBg:         color.RGBA{0x17, 0x0F, 0x11, 0xff},
 		VolumeBgOver:     color.RGBA{0x17, 0x0F, 0x11, 0xff},
 	}
@@ -58,9 +61,11 @@ func run() {
 	reloadUser := make(chan string)
 
 	action := make(chan string)
+
 	move := make(chan int)
 
 	song := make(chan sc.Song)
+
 	pausebtn := make(chan bool)
 	pausebtnstatus := make(chan bool)
 	updateTitle := make(chan string)
@@ -72,6 +77,8 @@ func run() {
 	updateBrowser := make(chan int)
 	listenNewBrowser := make(chan int)
 	playingPos := make(chan int)
+
+	listeningTime := make(chan string)
 
 	go component.Button(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 0, 1, 10, 0, 40), 0, 1, 16, 0, 40), theme, "refresh", func() {
 		action <- "refresh"
@@ -93,13 +100,13 @@ func run() {
 		action <- "shuffle"
 	})
 
-	go component.Title(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 5, 10, 10, 200, 1920), 0, 1, 16, 0, 40), theme, updateTitle)
+	go component.Title(EvenVerticalMinMaxY(EvenHorizontalMinX(mux.MakeEnv(), 5, 10, 10, 200), 0, 1, 16, 0, 40), theme, updateTitle)
 
 	go component.VolumeSlider(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 0, 1, 14, 0, 52), 1, 2, 16, 40, 90), theme, func(v float64) {
 		updateVolume <- v
 	})
 
-	go component.Player(EvenVerticalMinMaxY(EvenHorizontalMinX(mux.MakeEnv(), 1, 14, 14, 52), 1, 2, 16, 40, 90), theme, song, pausebtn, move, updateTitle, updateVolume)
+	go component.Player(EvenVerticalMinMaxY(EvenHorizontalMinX(mux.MakeEnv(), 1, 14, 14, 52), 1, 2, 16, 40, 90), theme, song, pausebtn, move, updateTitle, updateVolume, listeningTime)
 
 	go component.Button(EvenVerticalMinMaxY(FixedFromLeft(mux.MakeEnv(), 0, 26), 2, 3, 16, 90, 114), theme, "tracks", func() {
 		action <- "tracks"
@@ -109,7 +116,11 @@ func run() {
 		action <- "likes"
 	})
 
-	go component.Infobar(EvenVerticalMinMaxY(EvenHorizontalRightMinMaxX(mux.MakeEnv(), 0, 1, 1, 52, 52), 2, 3, 16, 90, 114), theme, newInfo, func(searchterm string) {
+	go component.Searchbar(EvenVerticalMinMaxY(FixedFromLeft(mux.MakeEnv(), 52, 200), 2, 3, 16, 90, 114), theme, func(searchterm string) {
+		reloadUser <- searchterm
+	})
+
+	go component.Infobar(EvenVerticalMinMaxY(EvenHorizontalRightMinMaxX(mux.MakeEnv(), 0, 1, 1, 200, 78), 2, 3, 16, 90, 114), theme, newInfo, listeningTime, func(searchterm string) {
 		reloadUser <- searchterm
 	})
 
@@ -119,6 +130,10 @@ func run() {
 
 	go component.Button(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 26, 52), 2, 3, 16, 90, 114), theme, "gotosong", func() {
 		gotosong <- struct{}{}
+	})
+
+	go component.Button(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 52, 78), 2, 3, 16, 90, 114), theme, "playlist", func() {
+		action <- "playlist"
 	})
 
 	go component.Browser(EvenVerticalMinMaxY(EvenHorizontalRightMinX(mux.MakeEnv(), 0, 1, 1, 52), 3, 16, 16, 114, 1080), theme, action, song, move, pausebtnstatus, reloadUser, newInfo, gotop, gotosong, updateBrowser, listenNewBrowser, listenBrowser, playingPos)

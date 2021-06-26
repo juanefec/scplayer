@@ -241,6 +241,11 @@ func hline(img *image.RGBA, x1, y, x2 int, col color.Color) {
 		img.Set(x1, y, col)
 	}
 }
+func vline(img *image.RGBA, y1, x, y2 int, col color.Color) {
+	for ; y1 <= y2; y1++ {
+		img.Set(x, y1, col)
+	}
+}
 func hlineBold(img *image.RGBA, x1, y, x2 int, col color.Color) {
 	for ; x1 <= x2; x1++ {
 		img.Set(x1, y-2, col)
@@ -249,6 +254,18 @@ func hlineBold(img *image.RGBA, x1, y, x2 int, col color.Color) {
 		img.Set(x1, y+1, col)
 		img.Set(x1, y+2, col)
 	}
+}
+
+func MakeCursorImage(r image.Rectangle, col color.Color) image.Image {
+	if r.Dx() >= 0 && r.Dy() >= 0 {
+		//off := r.Dx() / 12
+		pixs, pixe := r.Min.Y+4, r.Max.Y-6
+		cursor := image.NewRGBA(r)
+		vline(cursor, pixs, 81, pixe, col) // jajja, ochentiuno
+
+		return cursor
+	}
+	return nil
 }
 
 func MakeIconImage(icon string) image.Image {
