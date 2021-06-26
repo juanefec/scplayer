@@ -32,6 +32,8 @@ github.com/juanefec/soundcloud-api v0.1.6-0.20210624232659-591c03ebf6dc h1:K+f/S
 github.com/juanefec/soundcloud-api v0.1.6-0.20210624232659-591c03ebf6dc/go.mod h1:uw/bwZoe5d7lbfgKHvhmto6giq+7/KUU89NLq1f+9v0=
 github.com/juanefec/soundcloud-api v0.1.6-0.20210624233159-e9792a64e7c1 h1:OR54z6fmczhvlmNORMFnjz7//jiN87HTDH2TAc4gumM=
 github.com/juanefec/soundcloud-api v0.1.6-0.20210624233159-e9792a64e7c1/go.mod h1:uw/bwZoe5d7lbfgKHvhmto6giq+7/KUU89NLq1f+9v0=
+github.com/juanefec/soundcloud-api v0.1.6-0.20210626172007-65a6433c9d51 h1:9G/pEtsbzQSYOvcsn0uRwi4ZQlz9DyWK68du61ZHqFw=
+github.com/juanefec/soundcloud-api v0.1.6-0.20210626172007-65a6433c9d51/go.mod h1:uw/bwZoe5d7lbfgKHvhmto6giq+7/KUU89NLq1f+9v0=
 github.com/lucasb-eyer/go-colorful v0.0.0-20181028223441-12d3b2882a08/go.mod h1:NXg0ArsFk0Y01623LgUqoqcouGDB+PwCCQlrwrG6xJ4=
 github.com/mattn/go-runewidth v0.0.4/go.mod h1:LwmH8dsx7+W8Uxz3IHJYH5QSwggIsqBzpuz5H//U1FU=
 github.com/mewkiz/flac v1.0.5/go.mod h1:EHZNU32dMF6alpurYyKHDLYpW1lYpBZ5WrXi/VuNIGs=

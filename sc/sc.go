@@ -38,11 +38,11 @@ func GetTracks(username string) ([]Song, error) {
 		//return err
 	}
 
-	return getAllTracks(sc, user.ID, 0)
+	return getAllTracks(sc, user.ID, "")
 
 }
 
-func getAllTracks(sc *scp.API, user int64, offset int) ([]Song, error) {
+func getAllTracks(sc *scp.API, user int64, offset string) ([]Song, error) {
 	ls, err := sc.GetTracklist(scp.GetTracklistOptions{
 		ID:     user,
 		Type:   "tracklist",
@@ -89,16 +89,15 @@ func getAllTracks(sc *scp.API, user int64, offset int) ([]Song, error) {
 	// 	url, err := url.Parse(ls.NextHref)
 	// 	if err != nil {
 	// 		// log.Fatal(err.Error())
-	//		return nil, err
+	// 		return nil, err
 	// 	}
 
-	// 	off, err := strconv.Atoi(url.Query()["offset"][0])
+	// 	off := url.Query()["offset"][0]
+	// 	at, err := getAllTracks(sc, user, off)
 	// 	if err != nil {
-	// 		// log.Fatal(err.Error())
-	//		return nil, err
+	// 		return nil, err
 	// 	}
-
-	// 	songs = append(songs, getAllLikes(sc, user, off)...)
+	// 	songs = append(songs, at...)
 	// }
 
 	return songs, nil
@@ -126,11 +125,11 @@ func GetLikes(username string) ([]Song, error) {
 		//return err
 	}
 
-	return getAllLikes(sc, user.ID, 0)
+	return getAllLikes(sc, user.ID, "")
 
 }
 
-func getAllLikes(sc *scp.API, user int64, offset int) ([]Song, error) {
+func getAllLikes(sc *scp.API, user int64, offset string) ([]Song, error) {
 	ls, err := sc.GetTracklist(scp.GetTracklistOptions{
 		ID:     user,
 		Type:   "track",
@@ -177,16 +176,15 @@ func getAllLikes(sc *scp.API, user int64, offset int) ([]Song, error) {
 	// 	url, err := url.Parse(ls.NextHref)
 	// 	if err != nil {
 	// 		// log.Fatal(err.Error())
-	//		return nil, err
+	// 		return nil, err
 	// 	}
 
-	// 	off, err := strconv.Atoi(url.Query()["offset"][0])
+	// 	off := url.Query()["offset"][0]
+	// 	al, err := getAllLikes(sc, user, off)
 	// 	if err != nil {
-	// 		// log.Fatal(err.Error())
-	//		return nil, err
+	// 		return nil, err
 	// 	}
-
-	// 	songs = append(songs, getAllLikes(sc, user, off)...)
+	// 	songs = append(songs, al...)
 	// }
 
 	return songs, nil

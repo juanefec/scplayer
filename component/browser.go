@@ -459,9 +459,7 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 			}
 			selectedOGID = s.OriginalID
 			playnexts = playnexts[1:]
-			if showPlaynext {
-				playnextsViewMatches = playnexts
-			}
+			playnextsViewMatches = playnexts
 			playnextsImage = reloadPlaynext(songs, playnextsViewMatches)
 			selectedOGID = s.OriginalID
 			song2player <- s.Song
