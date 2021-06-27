@@ -7,13 +7,13 @@ import (
 	"github.com/juanefec/gui"
 )
 
-type envPair struct {
-	events <-chan gui.Event
-	draw   chan<- func(draw.Image) image.Rectangle
+type EnvPair struct {
+	Ev <-chan gui.Event
+	Dw chan<- func(draw.Image) image.Rectangle
 }
 
-func (ep *envPair) Events() <-chan gui.Event                      { return ep.events }
-func (ep *envPair) Draw() chan<- func(draw.Image) image.Rectangle { return ep.draw }
+func (ep *EnvPair) Events() <-chan gui.Event                      { return ep.Ev }
+func (ep *EnvPair) Draw() chan<- func(draw.Image) image.Rectangle { return ep.Dw }
 
 func FixedLeft(env gui.Env, maxX int) gui.Env {
 	out, in := gui.MakeEventsChan()
@@ -30,7 +30,7 @@ func FixedLeft(env gui.Env, maxX int) gui.Env {
 		close(in)
 	}()
 
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }
 
 func FixedRight(env gui.Env, minX int) gui.Env {
@@ -48,7 +48,7 @@ func FixedRight(env gui.Env, minX int) gui.Env {
 		close(in)
 	}()
 
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }
 
 func FixedTop(env gui.Env, maxY int) gui.Env {
@@ -66,7 +66,7 @@ func FixedTop(env gui.Env, maxY int) gui.Env {
 		close(in)
 	}()
 
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }
 
 func FixedBottom(env gui.Env, minY int) gui.Env {
@@ -84,7 +84,7 @@ func FixedBottom(env gui.Env, minY int) gui.Env {
 		close(in)
 	}()
 
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }
 
 func EvenHorizontal(env gui.Env, minI, maxI, n int) gui.Env {
@@ -103,7 +103,7 @@ func EvenHorizontal(env gui.Env, minI, maxI, n int) gui.Env {
 		close(in)
 	}()
 
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }
 
 func EvenVertical(env gui.Env, minI, maxI, n int) gui.Env {
@@ -122,7 +122,7 @@ func EvenVertical(env gui.Env, minI, maxI, n int) gui.Env {
 		close(in)
 	}()
 
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }
 
 func EvenVerticalMinMaxY(env gui.Env, minI, maxI, n, minY, maxY int) gui.Env {
@@ -154,7 +154,7 @@ func EvenVerticalMinMaxY(env gui.Env, minI, maxI, n, minY, maxY int) gui.Env {
 		close(in)
 	}()
 
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }
 
 func EvenHorizontalMinMaxX(env gui.Env, minI, maxI, n, minX, maxX int) gui.Env {
@@ -186,7 +186,7 @@ func EvenHorizontalMinMaxX(env gui.Env, minI, maxI, n, minX, maxX int) gui.Env {
 		close(in)
 	}()
 
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }
 
 // func EvenHorizontalRightMinMaxX(env gui.Env, minI, maxI, n, minX, maxX int) gui.Env {
@@ -232,7 +232,7 @@ func EvenHorizontalMinMaxX(env gui.Env, minI, maxI, n, minX, maxX int) gui.Env {
 // 		close(in)
 // 	}()
 
-// 	return &envPair{out, env.Draw()}
+// 	return &EnvPair{out, env.Draw()}
 // }
 
 func FixedFromBounds(env gui.Env, minX, min2X int) gui.Env {
@@ -249,7 +249,7 @@ func FixedFromBounds(env gui.Env, minX, min2X int) gui.Env {
 		}
 		close(in)
 	}()
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }
 
 func FixedFromRight(env gui.Env, minX, maxX int) gui.Env {
@@ -269,7 +269,7 @@ func FixedFromRight(env gui.Env, minX, maxX int) gui.Env {
 		close(in)
 	}()
 
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }
 func FixedFromLeft(env gui.Env, minX, maxX int) gui.Env {
 	out, in := gui.MakeEventsChan()
@@ -287,7 +287,7 @@ func FixedFromLeft(env gui.Env, minX, maxX int) gui.Env {
 		close(in)
 	}()
 
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }
 
 func EvenHorizontalRightMinMaxX(env gui.Env, minI, maxI, n, minX, maxX int) gui.Env {
@@ -331,7 +331,7 @@ func EvenHorizontalRightMinMaxX(env gui.Env, minI, maxI, n, minX, maxX int) gui.
 		close(in)
 	}()
 
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }
 
 func EvenHorizontalRightMinX(env gui.Env, minI, maxI, n, minX int) gui.Env {
@@ -374,7 +374,7 @@ func EvenHorizontalRightMinX(env gui.Env, minI, maxI, n, minX int) gui.Env {
 		close(in)
 	}()
 
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }
 
 func EvenHorizontalMinX(env gui.Env, minI, maxI, n, minX int) gui.Env {
@@ -399,7 +399,7 @@ func EvenHorizontalMinX(env gui.Env, minI, maxI, n, minX int) gui.Env {
 		close(in)
 	}()
 
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }
 
 func EvenHorizontalMaxX(env gui.Env, minI, maxI, n, maxX int) gui.Env {
@@ -423,5 +423,5 @@ func EvenHorizontalMaxX(env gui.Env, minI, maxI, n, maxX int) gui.Env {
 		close(in)
 	}()
 
-	return &envPair{out, env.Draw()}
+	return &EnvPair{out, env.Draw()}
 }

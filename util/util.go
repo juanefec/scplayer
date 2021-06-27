@@ -261,7 +261,7 @@ func MakeCursorImage(r image.Rectangle, col color.Color) image.Image {
 		//off := r.Dx() / 12
 		pixs, pixe := r.Min.Y+4, r.Max.Y-6
 		cursor := image.NewRGBA(r)
-		vline(cursor, pixs, 81, pixe, col) // jajja, ochentiuno
+		vline(cursor, pixs, 29, pixe, col) // jajja, ochentiuno
 
 		return cursor
 	}

@@ -108,19 +108,11 @@ func run() {
 
 	go component.Player(EvenVerticalMinMaxY(EvenHorizontalMinX(mux.MakeEnv(), 1, 14, 14, 52), 1, 2, 16, 40, 90), theme, song, pausebtn, move, updateTitle, updateVolume, listeningTime)
 
-	go component.Button(EvenVerticalMinMaxY(FixedFromLeft(mux.MakeEnv(), 0, 26), 2, 3, 16, 90, 114), theme, "tracks", func() {
-		action <- "tracks"
-	})
-
-	go component.Button(EvenVerticalMinMaxY(FixedFromLeft(mux.MakeEnv(), 26, 52), 2, 3, 16, 90, 114), theme, "likes", func() {
-		action <- "likes"
-	})
-
-	go component.Searchbar(EvenVerticalMinMaxY(FixedFromLeft(mux.MakeEnv(), 52, 200), 2, 3, 16, 90, 114), theme, func(searchterm string) {
+	go component.Searchbar(EvenVerticalMinMaxY(FixedFromLeft(mux.MakeEnv(), 0, 200), 2, 3, 16, 90, 114), theme, func(searchterm string) {
 		reloadUser <- searchterm
 	})
 
-	go component.Infobar(EvenVerticalMinMaxY(EvenHorizontalRightMinMaxX(mux.MakeEnv(), 0, 1, 1, 200, 78), 2, 3, 16, 90, 114), theme, newInfo, listeningTime, func(searchterm string) {
+	go component.Infobar(EvenVerticalMinMaxY(EvenHorizontalRightMinMaxX(mux.MakeEnv(), 0, 1, 1, 200, 52), 2, 3, 16, 90, 114), theme, newInfo, listeningTime, func(searchterm string) {
 		reloadUser <- searchterm
 	})
 
@@ -132,13 +124,13 @@ func run() {
 		gotosong <- struct{}{}
 	})
 
-	go component.Button(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 52, 78), 2, 3, 16, 90, 114), theme, "playlist", func() {
-		action <- "playlist"
-	})
+	go component.SelectGeneric(mux, 2, 3, 16, 114, 138, theme, func(tab string) {
+		action <- tab
+	}, "tracks", "tracks", "likes", "playlist")
 
-	go component.Browser(EvenVerticalMinMaxY(EvenHorizontalRightMinX(mux.MakeEnv(), 0, 1, 1, 52), 3, 16, 16, 114, 1080), theme, action, song, move, pausebtnstatus, reloadUser, newInfo, gotop, gotosong, updateBrowser, listenNewBrowser, listenBrowser, playingPos)
+	go component.Browser(EvenVerticalMinMaxY(EvenHorizontalRightMinX(mux.MakeEnv(), 0, 1, 1, 52), 3, 16, 16, 138, 1080), theme, action, song, move, pausebtnstatus, reloadUser, newInfo, gotop, gotosong, updateBrowser, listenNewBrowser, listenBrowser, playingPos)
 
-	go component.BrowserSlider(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 0, 52), 3, 16, 16, 114, 1080), theme, listenBrowser, updateBrowser, listenNewBrowser, playingPos)
+	go component.BrowserSlider(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 0, 52), 3, 16, 16, 138, 1080), theme, listenBrowser, updateBrowser, listenNewBrowser, playingPos)
 
 	for e := range env.Events() {
 		switch e.(type) {
