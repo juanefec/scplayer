@@ -10,6 +10,7 @@ import (
 
 	"github.com/juanefec/gui"
 	"github.com/juanefec/gui/win"
+	"github.com/juanefec/scplayer/sc"
 	. "github.com/juanefec/scplayer/util"
 )
 
@@ -61,7 +62,7 @@ func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, newListeningTime 
 
 func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 
-	redraw := func(r image.Rectangle, over, pressed bool, text, icon, info, cursor, phtext image.Image, isOpen, showCursor bool) func(draw.Image) image.Rectangle {
+	redraw := func(r image.Rectangle, over, pressed bool, text, avatar, icon, info, cursor, phtext image.Image, isOpen, showCursor bool) func(draw.Image) image.Rectangle {
 		return func(drw draw.Image) image.Rectangle {
 
 			var clr color.Color
@@ -85,6 +86,7 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 					draw.Draw(drw, nr, cursor, r.Min, draw.Over)
 				}
 			} else {
+				DrawLeftCentered(drw, r, avatar, draw.Over)
 				DrawCentered(drw, r, phtext, draw.Over)
 			}
 			return r
@@ -93,14 +95,17 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 
 	var (
 		r                                 image.Rectangle
+		emptyImg                          = image.NewRGBA(r)
 		searchterm                        strings.Builder
 		icon                              image.Image
 		text                              image.Image
 		phtext                            image.Image
 		cursor                            image.Image
+		avatar                            image.Image = emptyImg
 		over, pressed, isOpen, showCursor bool
 		exitCursor                        = make(chan struct{})
 		sentSearch                        string
+		err                               error
 
 		// info
 		info image.Image
@@ -124,10 +129,18 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 					on = !on
 				}
 
-				env.Draw() <- redraw(r, over, pressed, text, icon, info, cursor, phtext, isOpen, showCursor)
+				env.Draw() <- redraw(r, over, pressed, text, avatar, icon, info, cursor, phtext, isOpen, showCursor)
 
 				intervalc++
 			}
+		}
+	}
+
+	getAvatar := func(user string) {
+		avatar = emptyImg
+		avatar, err = sc.GetAvatar(user)
+		if err != nil {
+			fmt.Println(err)
 		}
 	}
 
@@ -144,7 +157,7 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 				r = e.Rectangle
 				cursor = MakeCursorImage(r, color.White)
 				text = MakeTextImage(searchterm.String(), theme.Face, theme.Text)
-				env.Draw() <- redraw(r, over, pressed, text, icon, info, cursor, phtext, isOpen, showCursor)
+				env.Draw() <- redraw(r, over, pressed, text, avatar, icon, info, cursor, phtext, isOpen, showCursor)
 
 			case win.KbRepeat:
 				switch e.Key {
@@ -157,7 +170,7 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 						}
 
 						text = MakeTextImage(searchterm.String(), theme.Face, theme.Text)
-						env.Draw() <- redraw(r, over, pressed, text, icon, info, cursor, phtext, isOpen, showCursor)
+						env.Draw() <- redraw(r, over, pressed, text, avatar, icon, info, cursor, phtext, isOpen, showCursor)
 					}
 				}
 
@@ -169,6 +182,7 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 						search(st)
 						if st != "" {
 							sentSearch = st
+							go getAvatar(sentSearch)
 						}
 						searchterm.Reset()
 						exitCursor <- struct{}{}
@@ -178,14 +192,14 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 					isOpen = !isOpen
 					phtext = MakeTextImage(sentSearch, theme.Face, theme.Text)
 					text = MakeTextImage("", theme.Face, theme.Text)
-					env.Draw() <- redraw(r, over, pressed, text, icon, info, cursor, phtext, isOpen, showCursor)
+					env.Draw() <- redraw(r, over, pressed, text, avatar, icon, info, cursor, phtext, isOpen, showCursor)
 
 				case win.KeyEscape:
 					search("")
 					searchterm.Reset()
 					isOpen = false
 					text = MakeTextImage(searchterm.String(), theme.Face, theme.Text)
-					env.Draw() <- redraw(r, over, pressed, text, icon, info, cursor, phtext, isOpen, showCursor)
+					env.Draw() <- redraw(r, over, pressed, text, avatar, icon, info, cursor, phtext, isOpen, showCursor)
 
 				case win.KeyBackspace:
 					if isOpen {
@@ -196,18 +210,18 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 						}
 					}
 					text = MakeTextImage(searchterm.String(), theme.Face, theme.Text)
-					env.Draw() <- redraw(r, over, pressed, text, icon, info, cursor, phtext, isOpen, showCursor)
+					env.Draw() <- redraw(r, over, pressed, text, avatar, icon, info, cursor, phtext, isOpen, showCursor)
 				}
 
 			case win.MoMove:
 				over = e.Point.In(r)
-				env.Draw() <- redraw(r, over, pressed, text, icon, info, cursor, phtext, isOpen, showCursor)
+				env.Draw() <- redraw(r, over, pressed, text, avatar, icon, info, cursor, phtext, isOpen, showCursor)
 
 			case win.MoDown:
 				newPressed := e.Point.In(r)
 				if newPressed != pressed {
 					pressed = newPressed
-					env.Draw() <- redraw(r, over, pressed, text, icon, info, cursor, phtext, isOpen, showCursor)
+					env.Draw() <- redraw(r, over, pressed, text, avatar, icon, info, cursor, phtext, isOpen, showCursor)
 				}
 
 			case win.MoUp:
@@ -218,6 +232,7 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 							search(st)
 							if st != "" {
 								sentSearch = st
+								go getAvatar(sentSearch)
 							}
 							searchterm.Reset()
 							exitCursor <- struct{}{}
@@ -229,7 +244,7 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 						isOpen = !isOpen
 					}
 					pressed = false
-					env.Draw() <- redraw(r, over, pressed, text, icon, info, cursor, phtext, isOpen, showCursor)
+					env.Draw() <- redraw(r, over, pressed, text, avatar, icon, info, cursor, phtext, isOpen, showCursor)
 				}
 
 			case win.KbType:
@@ -237,7 +252,7 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 					searchterm.WriteRune(e.Rune)
 				}
 				text = MakeTextImage(searchterm.String(), theme.Face, theme.Text)
-				env.Draw() <- redraw(r, over, pressed, text, icon, info, cursor, phtext, isOpen, showCursor)
+				env.Draw() <- redraw(r, over, pressed, text, avatar, icon, info, cursor, phtext, isOpen, showCursor)
 			}
 
 		}

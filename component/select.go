@@ -38,17 +38,19 @@ func SelectGeneric(mux *gui.Mux, minI, maxI, n, minY, maxY int, theme *Theme, ac
 
 	for ns := range view {
 		if ns != selected {
-			action(ns)
+			// event the one that is turned on to go off
 			optionMap[selected] <- struct{}{}
 			selected = ns
+			action(selected)
 		}
 	}
 }
 
 func SelectButton(env gui.Env, theme *Theme, name string, unselect chan struct{}, startSelected bool, action func(string)) {
-	iconImg := MakeIconImage(name)
+	iconOnImg := MakeIconImage(name + "-on")
+	iconOffImg := MakeIconImage(name + "-off")
 
-	redraw := func(r image.Rectangle, over, pressed, selected bool) func(draw.Image) image.Rectangle {
+	redraw := func(r image.Rectangle, icon image.Image, over, pressed, selected bool) func(draw.Image) image.Rectangle {
 		return func(drw draw.Image) image.Rectangle {
 			var clr color.Color
 			if pressed {
@@ -61,7 +63,7 @@ func SelectButton(env gui.Env, theme *Theme, name string, unselect chan struct{}
 				clr = theme.Title
 			}
 			draw.Draw(drw, r, &image.Uniform{clr}, image.Point{}, draw.Src)
-			DrawCentered(drw, r, iconImg, draw.Over)
+			DrawCentered(drw, r, icon, draw.Over)
 			return r
 		}
 	}
@@ -71,27 +73,34 @@ func SelectButton(env gui.Env, theme *Theme, name string, unselect chan struct{}
 		over     bool
 		pressed  bool
 		selected bool = startSelected
+		iconImg  image.Image
 	)
+	if selected {
+		iconImg = iconOnImg
+	} else {
+		iconImg = iconOffImg
+	}
 
 	for {
 		select {
 		case <-unselect:
 			selected = false
-			env.Draw() <- redraw(r, over, pressed, selected)
+			iconImg = iconOffImg
+			env.Draw() <- redraw(r, iconImg, over, pressed, selected)
 		case e := <-env.Events():
 			switch e := e.(type) {
 			case win.MoMove:
 				over = e.Point.In(r)
-				env.Draw() <- redraw(r, over, pressed, selected)
+				env.Draw() <- redraw(r, iconImg, over, pressed, selected)
 			case gui.Resize:
 				r = e.Rectangle
-				env.Draw() <- redraw(r, over, pressed, selected)
+				env.Draw() <- redraw(r, iconImg, over, pressed, selected)
 
 			case win.MoDown:
 				newPressed := e.Point.In(r)
 				if newPressed != pressed {
 					pressed = newPressed
-					env.Draw() <- redraw(r, over, pressed, selected)
+					env.Draw() <- redraw(r, iconImg, over, pressed, selected)
 				}
 
 			case win.MoUp:
@@ -99,9 +108,11 @@ func SelectButton(env gui.Env, theme *Theme, name string, unselect chan struct{}
 					if e.Point.In(r) {
 						action(name)
 						selected = true
+						iconImg = iconOnImg
+
 					}
 					pressed = false
-					env.Draw() <- redraw(r, over, pressed, selected)
+					env.Draw() <- redraw(r, iconImg, over, pressed, selected)
 				}
 			}
 		}

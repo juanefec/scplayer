@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"image"
+	"image/jpeg"
 	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
@@ -14,7 +17,52 @@ import (
 	"github.com/faiface/beep/speaker"
 	"github.com/juanefec/scplayer/util"
 	scp "github.com/juanefec/soundcloud-api"
+	"golang.org/x/image/draw"
 )
+
+func GetAvatar(username string) (image.Image, error) {
+	if username == "" {
+		return nil, fmt.Errorf("empty username")
+	}
+
+	sc, err := scp.New(scp.APIOptions{})
+
+	if err != nil {
+		// log.Fatal(err.Error())
+		return nil, err
+	}
+
+	user, err := sc.GetUser(scp.GetUserOptions{
+		ProfileURL: "https://soundcloud.com/" + username,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("user [%v] not found", username)
+		//// log.Fatal(err.Error())
+		//return err
+	}
+
+	resp, err := http.DefaultClient.Get(user.AvatarURL)
+	if err != nil {
+		return nil, fmt.Errorf("avatar [%v] not found", user.AvatarURL)
+		//// log.Fatal(err.Error())
+		//return err
+	}
+
+	img, err := jpeg.Decode(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode [%v]", user.AvatarURL)
+		//// log.Fatal(err.Error())
+		//return err
+	}
+
+	r := image.Rect(0, 0, 26, 26)
+	rimg := image.NewRGBA(r)
+
+	draw.CatmullRom.Scale(rimg, r, img, img.Bounds(), draw.Over, nil)
+
+	return rimg, nil
+}
 
 func GetTracks(username string) ([]Song, error) {
 	if username == "" {
@@ -118,6 +166,8 @@ func GetLikes(username string) ([]Song, error) {
 	user, err := sc.GetUser(scp.GetUserOptions{
 		ProfileURL: "https://soundcloud.com/" + username,
 	})
+
+	fmt.Println(user.AvatarURL)
 
 	if err != nil {
 		return nil, fmt.Errorf("user [%v] not found", username)
