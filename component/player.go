@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/juanefec/gui"
+	"github.com/juanefec/gui/win"
 	"github.com/juanefec/scplayer/sc"
 
 	. "github.com/juanefec/scplayer/util"
@@ -34,6 +35,7 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 
 	var (
 		r               image.Rectangle
+		rRail           image.Rectangle
 		imgProgress     image.Image
 		imgProgressTop  image.Image
 		progress        image.Image
@@ -52,9 +54,9 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 	)
 
 	loadSong := func(nsong sc.Song) {
-		pvol = song.GetVolume()
+		//pvol = song.GetVolume()
 		song = &nsong
-
+		updateTitle <- "loading..."
 		go func(song *sc.Song) {
 			err := song.Download(doneDownload)
 			if err != nil {
@@ -95,8 +97,9 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 
 				imgProgress = MakeTextImage(song.Progress(), theme.Face, theme.Text)
 				imgProgressTop = MakeTextImage(song.Duration(), theme.Face, theme.Text)
-
-				if ra, pr, ok := MakeRailAndProgressImage(r, song.DurationMs(), song.ProgressMs(), theme.Rail); ok {
+				rRail = r
+				rRail.Min.X, rRail.Max.X = r.Min.X+34, r.Max.X-50
+				if ra, pr, ok := MakeRailAndProgressImage(rRail, song.DurationMs(), song.ProgressMs(), theme.Rail); ok {
 					rail, progress = ra, pr
 				}
 
@@ -144,6 +147,14 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 			case gui.Resize:
 				r = e.Rectangle
 				env.Draw() <- redraw(r, rail, progress, imgProgress, imgProgressTop)
+			case win.MoDown:
+				if playing && e.Button == win.ButtonLeft {
+					if e.Point.In(rRail) {
+						rawPos := e.Point.X - rRail.Min.X
+						pos := Map(rawPos, 0, rRail.Dx(), 0, 100)
+						song.SetProgress(pos)
+					}
+				}
 			}
 		}
 		exitSongStarter <- struct{}{}
@@ -163,7 +174,7 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 		case nsong := <-newsong:
 			loadSong(nsong)
 		case v := <-updateVol:
-			song.SetVolume(v)
+			pvol = song.SetVolume(v)
 
 		}
 	}

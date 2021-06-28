@@ -73,6 +73,7 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 			} else {
 				clr = theme.TextBoxUp
 			}
+
 			draw.Draw(drw, r, &image.Uniform{clr}, image.Point{}, draw.Src)
 
 			if isOpen {

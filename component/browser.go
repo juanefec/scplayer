@@ -140,9 +140,9 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 
 		showing  string = "tracks" // "likes" || "tracks" || "playlist"
 		position        = map[string]image.Point{
-			"tracks":   image.Point{},
-			"likes":    image.Point{},
-			"playlist": image.Point{},
+			"tracks":   {},
+			"likes":    {},
+			"playlist": {},
 		}
 
 		playnexts            []pnext
@@ -159,6 +159,8 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 		if fetch {
 			namesImage = image.NewRGBA(r)
 			playlistImage = reloadPlaynext(playnextsViewMatches)
+			tmpselected := selected
+			selected = -1
 			env.Draw() <- redraw(r, showing, selected, position[showing], lineHeight, namesImage, playnextsViewMatches)
 			newInfo <- "loading..."
 			tracks, err = sc.GetTracks(username)
@@ -173,6 +175,7 @@ func Browser(env gui.Env, theme *Theme, action <-chan string, song2player chan<-
 					{Artist: "- - - - - - -", Title: fmt.Sprintf("- - - - >  %v                 ", err.Error())},
 				}
 			}
+			selected = tmpselected
 		}
 		if showing == "tracks" {
 			tracksImage = reload(tracks)

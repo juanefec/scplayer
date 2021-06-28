@@ -167,8 +167,6 @@ func GetLikes(username string) ([]Song, error) {
 		ProfileURL: "https://soundcloud.com/" + username,
 	})
 
-	fmt.Println(user.AvatarURL)
-
 	if err != nil {
 		return nil, fmt.Errorf("user [%v] not found", username)
 		//// log.Fatal(err.Error())
@@ -240,6 +238,10 @@ func getAllLikes(sc *scp.API, user int64, offset string) ([]Song, error) {
 	return songs, nil
 }
 
+const (
+	VolMin, VolMax = -6.5, 1.8
+)
+
 type Song struct {
 	Title        string
 	Artist       string
@@ -249,9 +251,8 @@ type Song struct {
 	data         scp.Transcoding
 	volume       *effects.Volume
 	controller   *beep.Ctrl
-	streamer     beep.StreamSeekCloser
+	streamer     beep.StreamSeeker
 	format       beep.Format
-	buffer       *bytes.Buffer
 	isDownloaded bool
 }
 
@@ -261,7 +262,6 @@ func (song *Song) Play(vol float64, done chan<- struct{}) error {
 
 	ctrl := &beep.Ctrl{
 		Streamer: beep.Seq(song.streamer, beep.Callback(func() {
-			song.buffer.Reset()
 			done <- struct{}{}
 		})),
 		Paused: false,
@@ -270,12 +270,13 @@ func (song *Song) Play(vol float64, done chan<- struct{}) error {
 	volume := &effects.Volume{
 		Streamer: ctrl,
 		Base:     2,
-		Volume:   vol,
+		Volume:   0,
 		Silent:   false,
 	}
 
 	song.controller = ctrl
 	song.volume = volume
+	song.SetVolume(vol)
 	speaker.Play(song.volume)
 
 	return nil
@@ -299,43 +300,57 @@ func (song *Song) Download(done chan<- int) error {
 
 	err = sc.DownloadTrack(song.data, buffer)
 	if err != nil {
-		// log.Fatal(err.Error())
 		return err
-		//return err
 	}
 
 	streamer, format, err := mp3.Decode(ioutil.NopCloser(buffer))
 	if err != nil {
-		//log.Fatal(err)
 		return err
 	}
 
+	buff := beep.NewBuffer(format)
+	buff.Append(streamer)
+	bstreamer := buff.Streamer(0, buff.Len())
+
 	song.format = format
-	song.streamer = streamer
-	song.buffer = buffer
+	song.streamer = bstreamer
 	song.isDownloaded = true
 	done <- song.OriginalID
 	return nil
 }
 
-func (song *Song) SetVolume(vol float64) {
+func (song *Song) SetVolume(vol float64) float64 {
 	if song == nil || song.volume == nil {
-		return
+		return vol
 	}
 	if vol < 0.3 {
 		song.volume.Silent = true
-		return
+		return vol
 	}
 	song.volume.Silent = false
-	rs, re := -6.5, 1.8
-	song.volume.Volume = util.MapFloat(float64(vol), 0, 9, rs, re)
+
+	song.volume.Volume = util.MapFloat(float64(vol), 0, 9, VolMin, VolMax)
+	return vol
 }
 
 func (song *Song) GetVolume() float64 {
 	if song == nil || song.volume == nil {
 		return -4.0
 	}
-	return song.volume.Volume
+	return util.MapFloat(song.volume.Volume, VolMin, VolMax, 0, 9)
+}
+
+func (song Song) SetProgress(pos int) {
+	if song.streamer == nil {
+		fmt.Println("song.streamer nil")
+	}
+	rpos := util.Map(pos, 0, 100, 0, song.streamer.Len()-1)
+	speaker.Lock()
+	err := song.streamer.Seek(rpos)
+	if err != nil {
+		fmt.Println(err)
+	}
+	speaker.Unlock()
 }
 
 func (song Song) Progress() string {
