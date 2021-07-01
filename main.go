@@ -58,79 +58,100 @@ func run() {
 
 	mux, env := gui.NewMux(w)
 
-	reloadUser := make(chan string)
+	var (
+		pausebtnstatus    = make(chan bool)               // pauseButton 	 	  <--- browser
+		updateCurrentUser = make(chan string)             // searchBar	     	  <--- userSelect
+		startedLoading    = make(chan struct{})           // avatar				  <--- searchBar
+		listeningTime     = make(chan string)             // userSelect(infoBar)  <--- player
+		addUserHistory    = make(chan sc.User)            // userSelect			  <--- browser
+		updateTitle       = make(chan component.NewTitle) // title	              <--- player
+		reloadUserAvatar  = make(chan sc.User)            // avatar               <--- userSelect, browser
+		updateVolume      = make(chan float64)            // player				  <--- volume
+		song              = make(chan sc.Song)            // player				  <--- browser
+		updateBrowser     = make(chan int)                // browser 		 	  <--- browserSlider
+		listenNewBrowser  = make(chan int)                // browser 		 	  <--- browserSlider
+		pausebtn          = make(chan bool)               // browser		 	  <--- pauseButton
+		reloadUser        = make(chan string)             // browser	     	  <--- searchBar <-userSelect
+		action            = make(chan string)             // browser	     	  <--- refreshButton <-shuffleButton <-userSelect
+		clearPlaylist     = make(chan struct{})           // browser			  <--- buttonClearPlaylist xd
+		swapOption        = make(chan sc.User)            // browser              <--- userSelect
+		move              = make(chan int)                // browser 		 	  <--- buttonBack <-buttonForward <-player (when song ends)
+		listenBrowser     = make(chan int)                // browserSlider   	  <--- browser
+		playingPos        = make(chan int)                // browserSlider   	  <--- browser
+	)
 
-	action := make(chan string)
-
-	move := make(chan int)
-
-	song := make(chan sc.Song)
-
-	pausebtn := make(chan bool)
-	pausebtnstatus := make(chan bool)
-	updateTitle := make(chan string)
-	updateVolume := make(chan float64)
-	gotop := make(chan struct{})
-	gotosong := make(chan struct{})
-	newInfo := make(chan string)
-	listenBrowser := make(chan int)
-	updateBrowser := make(chan int)
-	listenNewBrowser := make(chan int)
-	playingPos := make(chan int)
-
-	listeningTime := make(chan string)
-
-	go component.Button(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 0, 1, 10, 0, 40), 0, 1, 16, 0, 40), theme, "refresh", func() {
+	go component.Button(FixedFromTopLeft(mux.MakeEnv(), 0, 40, 0, 40), theme, "refresh", func() {
 		action <- "refresh"
 	})
 
-	go component.Button(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 1, 2, 10, 40, 80), 0, 1, 16, 0, 40), theme, "back", func() {
+	go component.Button(FixedFromTopLeft(mux.MakeEnv(), 40, 80, 0, 40), theme, "back", func() {
 		move <- -1
 	})
 
-	go component.PauseButton(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 2, 3, 10, 80, 120), 0, 1, 16, 0, 40), theme, pausebtnstatus, func(playing bool) {
+	go component.PauseButton(FixedFromTopLeft(mux.MakeEnv(), 80, 120, 0, 40), theme, pausebtnstatus, func(playing bool) {
 		pausebtn <- playing
 	})
 
-	go component.Button(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 3, 4, 10, 120, 160), 0, 1, 16, 0, 40), theme, "forward", func() {
+	go component.Button(FixedFromTopLeft(mux.MakeEnv(), 120, 160, 0, 40), theme, "forward", func() {
 		move <- 1
 	})
 
-	go component.Button(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 4, 5, 10, 160, 200), 0, 1, 16, 0, 40), theme, "shuffle", func() {
+	go component.Button(FixedFromTopLeft(mux.MakeEnv(), 160, 200, 0, 40), theme, "shuffle", func() {
 		action <- "shuffle"
 	})
 
-	go component.Title(EvenVerticalMinMaxY(EvenHorizontalMinX(mux.MakeEnv(), 5, 10, 10, 200), 0, 1, 16, 0, 40), theme, updateTitle)
+	go component.Title(FixedFromTopXBounds(mux.MakeEnv(), 200, 0, 0, 40), theme, updateTitle)
 
-	go component.VolumeSlider(EvenVerticalMinMaxY(EvenHorizontalMinMaxX(mux.MakeEnv(), 0, 1, 14, 0, 52), 1, 2, 16, 40, 90), theme, func(v float64) {
+	go component.VolumeSlider(FixedFromTopLeft(mux.MakeEnv(), 0, 52, 40, 90), theme, func(v float64) {
 		updateVolume <- v
 	})
 
-	go component.Player(EvenVerticalMinMaxY(EvenHorizontalMinX(mux.MakeEnv(), 1, 14, 14, 52), 1, 2, 16, 40, 90), theme, song, pausebtn, move, updateTitle, updateVolume, listeningTime)
+	go component.Player(FixedFromTopXBounds(mux.MakeEnv(), 52, 0, 40, 90), theme, song, pausebtn, move, updateTitle, updateVolume, listeningTime)
 
-	go component.Searchbar(EvenVerticalMinMaxY(FixedFromLeft(mux.MakeEnv(), 0, 200), 2, 3, 16, 90, 114), theme, func(searchterm string) {
+	go component.Avatar(FixedFromTopLeft(mux.MakeEnv(), 0, 52, 90, 142), theme, reloadUserAvatar, startedLoading)
+
+	go component.Searchbar(FixedFromTopLeft(mux.MakeEnv(), 52, 200, 90, 116), theme, func(searchterm string) {
 		reloadUser <- searchterm
+		if searchterm != "" {
+			startedLoading <- struct{}{}
+		}
+	}, updateCurrentUser)
+
+	go component.SelectDynamic(mux, 2, 3, 16, 90, 116, 200, theme, listeningTime, func(user sc.User) {
+		reloadUser <- user.Username
+		reloadUserAvatar <- user
+		updateCurrentUser <- user.Username
+	}, addUserHistory, swapOption)
+
+	// go component.Infobar(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 0, 124), 2, 3, 16, 90, 116), theme, newInfo, listeningTime, func(searchterm string) {
+	// 	reloadUser <- searchterm
+	// })
+
+	go component.Button(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 0, 52), 2, 3, 16, 116, 142), theme, "clear-playlist", func() {
+		clearPlaylist <- struct{}{}
 	})
 
-	go component.Infobar(EvenVerticalMinMaxY(EvenHorizontalRightMinMaxX(mux.MakeEnv(), 0, 1, 1, 200, 52), 2, 3, 16, 90, 114), theme, newInfo, listeningTime, func(searchterm string) {
-		reloadUser <- searchterm
-	})
-
-	go component.Button(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 0, 26), 2, 3, 16, 90, 114), theme, "gotop", func() {
-		gotop <- struct{}{}
-	})
-
-	go component.Button(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 26, 52), 2, 3, 16, 90, 114), theme, "gotosong", func() {
-		gotosong <- struct{}{}
-	})
-
-	go component.SelectGeneric(mux, 2, 3, 16, 114, 138, theme, func(tab string) {
+	go component.SelectGeneric(mux, 2, 3, 16, 116, 142, 52, 52, theme, func(tab string) {
 		action <- tab
 	}, "tracks", "tracks", "likes", "playlist")
 
-	go component.Browser(EvenVerticalMinMaxY(EvenHorizontalRightMinX(mux.MakeEnv(), 0, 1, 1, 52), 3, 16, 16, 138, 1080), theme, action, song, move, pausebtnstatus, reloadUser, newInfo, gotop, gotosong, updateBrowser, listenNewBrowser, listenBrowser, playingPos)
+	go component.Browser(EvenVerticalMinMaxY(FixedFromBounds(mux.MakeEnv(), 0, 52), 3, 16, 16, 142, 1080), theme,
+		action,
+		song,
+		move,
+		pausebtnstatus,
+		reloadUser,
+		updateBrowser,
+		listenNewBrowser,
+		listenBrowser,
+		playingPos,
+		clearPlaylist,
+		addUserHistory,
+		reloadUserAvatar,
+		swapOption,
+	)
 
-	go component.BrowserSlider(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 0, 52), 3, 16, 16, 138, 1080), theme, listenBrowser, updateBrowser, listenNewBrowser, playingPos)
+	go component.BrowserSlider(EvenVerticalMinMaxY(FixedFromRight(mux.MakeEnv(), 0, 52), 3, 16, 16, 142, 1080), theme, listenBrowser, updateBrowser, listenNewBrowser, playingPos)
 
 	for e := range env.Events() {
 		switch e.(type) {

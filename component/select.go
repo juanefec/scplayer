@@ -10,8 +10,7 @@ import (
 	. "github.com/juanefec/scplayer/util"
 )
 
-func SelectGeneric(mux *gui.Mux, minI, maxI, n, minY, maxY int, theme *Theme, action func(string), startOption string, options ...string) {
-
+func SelectGeneric(mux *gui.Mux, minI, maxI, n, minY, maxY, minRX, maxRX int, theme *Theme, action func(string), startOption string, options ...string) {
 	var (
 		view            = make(chan string)
 		selected string = startOption
@@ -28,7 +27,7 @@ func SelectGeneric(mux *gui.Mux, minI, maxI, n, minY, maxY int, theme *Theme, ac
 			startSelected = true
 		}
 
-		go SelectButton(EvenVerticalMinMaxY(EvenHorizontal(mux.MakeEnv(), i, i+1, total), minI, maxI, n, minY, maxY), theme, op, ch, startSelected, func(opName string) {
+		go SelectButton(EvenVerticalMinMaxY(EvenHorizontalWithRectMinMax(mux.MakeEnv(), i, i+1, total, minRX, maxRX), minI, maxI, n, minY, maxY), theme, op, ch, startSelected, func(opName string) {
 			view <- opName
 		})
 

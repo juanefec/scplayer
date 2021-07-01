@@ -35,6 +35,8 @@ const (
 	playlist64    = "iVBORw0KGgoAAAANSUhEUgAAABYAAAAWCAYAAADEtGw7AAAAAXNSR0IArs4c6QAAAIRJREFUOI1jYBgFUMCILiDOIkiyIawR0v8ZGBgYfq94ysjAwMDw8s97BhZciogFMMN+r3jKyBoh/R/GZyLZeQQsgTkMw8UwGykxHKvB5AYFOqBqUCADqgcFToNHgwIOiAkKYizHMJgUgM8RZAcFcvbFZsHgCwrkcuHJkiuM5JSKo4AyAACcHT/hLhFbTAAAAABJRU5ErkJggg=="
 	playlistOff64 = "iVBORw0KGgoAAAANSUhEUgAAABYAAAAWCAYAAADEtGw7AAAAAXNSR0IArs4c6QAAAHBJREFUOI1jYBgFUMCILiDOIkiOOf+RzXv55z0DEw5FpGAGqGGMyHxsBlMC4Iaz4JCk1HCsBv/HIkbQIHRA7aCAA1oEBU6DR4MCDogJCoKWYzOYFIDTEZQExX9oNmYQZxHEsGBQBgUjzKUwl48C+gIA7L8i/n4SpBkAAAAASUVORK5CYII="
 
+	clearPlaylist64 = "iVBORw0KGgoAAAANSUhEUgAAACwAAAAWCAYAAAC7ZX7KAAAAAXNSR0IArs4c6QAAAPhJREFUSIntVsENgzAMdKs+eXQYXqzAOKxR1uLFOAzQlyXLsp1z0oKQcs/EsS/nw4So4794zO/5czWJDJ5XE/CwH9uyH9ui119eMBHROEwrkhiJtYozxmFa5T7n4nWZO1Q4KoLsW3HWxTKXcT2cKYJ0IgutLMO0BJNgUvpwDVm0G6WcoSUskghZTa5ENtMhaKxZBZGPrMUqaUtocp6ykXpcVJ9tUfw0hT2SnhjVCnvqRC239qILZqwTEo6GeURaryHqoqTdKRFNA9TDFkGvhlyLcpoeRufsr38esmNVHi6RQL54Lt5SR+KU56X0aeRnHWvF9fdwx93xBZY/8GwDxzOdAAAAAElFTkSuQmCC"
+
 	volumeLVL9 = "iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAAXNSR0IArs4c6QAAAJpJREFUWIXtkzENw0AQBHcN61kEQVqTcBUSboMgLEzLKd5fu3hLNyfdIBjtaH1Kp8BYkqiSlrxES9xh6noDfOJoh/z0xC9o4p9sqtwAv2C0Q3564i808Vs2VW6AXzDaIT+WpO1gJv402VS5AX7BaIf89AmPFZlYbbexchf4BaMV8oNPXCeZok7yAPjEdZIp6iQPgE9cJ5mi7f4DR3lB/Gpi44oAAAAASUVORK5CYII="
 	volumeLVL8 = "iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAAXNSR0IArs4c6QAAAJdJREFUWIXtk7ENhEAQxDxtXRdfwaffBBFNkFIBXdAWBMdlnx3SzkrrCqyxBoo5BHDBFS3yD4HkKjewXzDaIT898cc08YHkKjewXzDaIT898W6a+IvkKjewXzDaIT8CWE7PxGtDcpUb2C8Y7ZCfPuH5s0xM2yRbuQf7BaMV8mOfuE4yRZ3kBewT10mmqJO8gH3iOskUbdMNoCM/+62FTwAAAAAASUVORK5CYII="
 	volumeLVL7 = "iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAAXNSR0IArs4c6QAAAIpJREFUWIXt0zERgDAUA9DEVl2ggBUTTJjoigJc1FYZoBtby/30Lk9BLrkAZma/IgDUBTU6yBdeIFXDNfINRmeY3zPxKTrxClI1XCPfYHSG+REA9qI58ZFAqoZr5BuMzjC/p8KySU6MlEnZcC/5BqMjzE9+Yp+ki08ygPzEPkkXn2QA+Yl9ki4p8wYEFDn6/t2+bQAAAABJRU5ErkJggg=="
@@ -48,32 +50,33 @@ const (
 )
 
 var icons = map[string]string{
-	"app-icon":     appIcon64,
-	"play":         playBtn64,
-	"pause":        pauseBtn64,
-	"forward":      forwardBtn64,
-	"back":         backBtn64,
-	"shuffle":      shuffleBtn64,
-	"refresh":      refreshBtn64,
-	"search":       search64,
-	"gotop":        gotop64,
-	"likes-on":     likes64,
-	"likes-off":    likesOff64,
-	"tracks-on":    tracks64,
-	"tracks-off":   tracksOff64,
-	"playlist-on":  playlist64,
-	"playlist-off": playlistOff64,
-	"gotosong":     gotosong64,
-	"volume_lvl-9": volumeLVL9,
-	"volume_lvl-8": volumeLVL8,
-	"volume_lvl-7": volumeLVL7,
-	"volume_lvl-6": volumeLVL6,
-	"volume_lvl-5": volumeLVL5,
-	"volume_lvl-4": volumeLVL4,
-	"volume_lvl-3": volumeLVL3,
-	"volume_lvl-2": volumeLVL2,
-	"volume_lvl-1": volumeLVL1,
-	"volume_lvl-0": volumeLVL0,
+	"app-icon":       appIcon64,
+	"play":           playBtn64,
+	"pause":          pauseBtn64,
+	"forward":        forwardBtn64,
+	"back":           backBtn64,
+	"shuffle":        shuffleBtn64,
+	"refresh":        refreshBtn64,
+	"search":         search64,
+	"gotop":          gotop64,
+	"likes-on":       likes64,
+	"likes-off":      likesOff64,
+	"tracks-on":      tracks64,
+	"tracks-off":     tracksOff64,
+	"playlist-on":    playlist64,
+	"playlist-off":   playlistOff64,
+	"gotosong":       gotosong64,
+	"clear-playlist": clearPlaylist64,
+	"volume_lvl-9":   volumeLVL9,
+	"volume_lvl-8":   volumeLVL8,
+	"volume_lvl-7":   volumeLVL7,
+	"volume_lvl-6":   volumeLVL6,
+	"volume_lvl-5":   volumeLVL5,
+	"volume_lvl-4":   volumeLVL4,
+	"volume_lvl-3":   volumeLVL3,
+	"volume_lvl-2":   volumeLVL2,
+	"volume_lvl-1":   volumeLVL1,
+	"volume_lvl-0":   volumeLVL0,
 }
 
 func GetIcon(iconName string) image.Image {

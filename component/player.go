@@ -13,7 +13,7 @@ import (
 	. "github.com/juanefec/scplayer/util"
 )
 
-func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan bool, next chan<- int, updateTitle chan<- string, updateVol <-chan float64, listeningTime chan<- string) {
+func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan bool, next chan<- int, updateTitle chan<- NewTitle, updateVol <-chan float64, listeningTime chan<- string) {
 
 	redraw := func(r image.Rectangle, rail image.Image, progress image.Image, imgProgress image.Image, imgProgressTop image.Image) func(draw.Image) image.Rectangle {
 		return func(drw draw.Image) image.Rectangle {
@@ -54,9 +54,8 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 	)
 
 	loadSong := func(nsong sc.Song) {
-		//pvol = song.GetVolume()
 		song = &nsong
-		updateTitle <- "loading..."
+		updateTitle <- NewTitle{Title: "loading..."}
 		go func(song *sc.Song) {
 			err := song.Download(doneDownload)
 			if err != nil {
@@ -134,7 +133,7 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 					playing = true
 					title := fmt.Sprintf("%v - %v", song.Artist, song.Title)
 
-					updateTitle <- title
+					updateTitle <- NewTitle{Title: title, Cover: song.Cover}
 					go songTimer()
 				}
 			}
@@ -148,7 +147,7 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 				r = e.Rectangle
 				env.Draw() <- redraw(r, rail, progress, imgProgress, imgProgressTop)
 			case win.MoDown:
-				if playing && e.Button == win.ButtonLeft {
+				if song.IsDownloaded() && e.Button == win.ButtonLeft {
 					if e.Point.In(rRail) {
 						rawPos := e.Point.X - rRail.Min.X
 						pos := Map(rawPos, 0, rRail.Dx(), 0, 100)
@@ -180,11 +179,17 @@ func Player(env gui.Env, theme *Theme, newsong <-chan sc.Song, pausebtn <-chan b
 	}
 }
 
-func Title(env gui.Env, theme *Theme, newTitle <-chan string) {
-	redraw := func(r image.Rectangle, imgTitle image.Image) func(draw.Image) image.Rectangle {
+type NewTitle struct {
+	Title string
+	Cover image.Image
+}
+
+func Title(env gui.Env, theme *Theme, newTitle <-chan NewTitle) {
+	redraw := func(r image.Rectangle, imgTitle, imgCover image.Image) func(draw.Image) image.Rectangle {
 		return func(drw draw.Image) image.Rectangle {
 			draw.Draw(drw, r, &image.Uniform{theme.Title}, image.Point{}, draw.Src)
 			DrawCentered(drw, r, imgTitle, draw.Over)
+			DrawLeftCentered(drw, r, imgCover, draw.Over)
 			return r
 		}
 	}
@@ -192,14 +197,16 @@ func Title(env gui.Env, theme *Theme, newTitle <-chan string) {
 	var (
 		r        image.Rectangle
 		imgTitle image.Image
+		imgCover image.Image
 	)
 
 	for {
 		select {
 
 		case t := <-newTitle:
-			imgTitle = MakeTextScaledImage(t, theme.Face, theme.Text, 1.5)
-			env.Draw() <- redraw(r, imgTitle)
+			imgTitle = MakeTextScaledImage(t.Title, theme.Face, theme.Text, 1.5)
+			imgCover = t.Cover
+			env.Draw() <- redraw(r, imgTitle, imgCover)
 		case e, ok := <-env.Events():
 			if !ok {
 				close(env.Draw())
@@ -207,7 +214,7 @@ func Title(env gui.Env, theme *Theme, newTitle <-chan string) {
 			}
 			if resize, ok := e.(gui.Resize); ok {
 				r = resize.Rectangle
-				env.Draw() <- redraw(r, imgTitle)
+				env.Draw() <- redraw(r, imgTitle, imgCover)
 			}
 		}
 	}

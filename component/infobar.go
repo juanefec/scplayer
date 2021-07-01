@@ -10,20 +10,15 @@ import (
 
 	"github.com/juanefec/gui"
 	"github.com/juanefec/gui/win"
-	"github.com/juanefec/scplayer/sc"
 	. "github.com/juanefec/scplayer/util"
 )
 
 var transparentDarkCyan = color.RGBA{0x00, 0x8b, 0x8b, 0x90}
 
-func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, newListeningTime <-chan string, search func(string)) {
-
-	redraw := func(r image.Rectangle, listeningTime, info image.Image) func(draw.Image) image.Rectangle {
+func Infobar(env gui.Env, theme *Theme, newListeningTime <-chan string, newXStart <-chan int) {
+	redraw := func(r image.Rectangle, listeningTime image.Image) func(draw.Image) image.Rectangle {
 		return func(drw draw.Image) image.Rectangle {
 			draw.Draw(drw, r, &image.Uniform{theme.Infobar}, image.Point{}, draw.Src)
-			textRect := r
-			textRect.Min.X = textRect.Min.X + 10 // :)
-			DrawLeftCentered(drw, textRect, info, draw.Over)
 			timeRect := r
 			timeRect.Max.X = timeRect.Max.X - 10 // :)
 			DrawRightCentered(drw, timeRect, listeningTime, draw.Over)
@@ -33,18 +28,20 @@ func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, newListeningTime 
 
 	var (
 		r             image.Rectangle
-		info          image.Image
 		listeningTime image.Image
+		minx          int
 	)
 
 	for {
 		select {
 		case lt := <-newListeningTime:
 			listeningTime = MakeTextImage(fmt.Sprintf("spent: %v", lt), theme.Face, theme.Text)
-			env.Draw() <- redraw(r, listeningTime, info)
-		case nf := <-newInfo:
-			info = MakeTextImage(nf, theme.Face, theme.Text)
-			env.Draw() <- redraw(r, listeningTime, info)
+
+			env.Draw() <- redraw(r, listeningTime)
+		case nx := <-newXStart:
+			minx = nx
+			r.Min.X = minx
+			env.Draw() <- redraw(r, listeningTime)
 		case e, ok := <-env.Events():
 			if !ok {
 				return
@@ -52,15 +49,15 @@ func Infobar(env gui.Env, theme *Theme, newInfo <-chan string, newListeningTime 
 			switch e := e.(type) {
 			case gui.Resize:
 				r = e.Rectangle
-				env.Draw() <- redraw(r, listeningTime, info)
+				r.Min.X = minx
+				env.Draw() <- redraw(r, listeningTime)
 			}
 
 		}
 	}
-
 }
 
-func Searchbar(env gui.Env, theme *Theme, search func(string)) {
+func Searchbar(env gui.Env, theme *Theme, search func(string), updateCurrentUser <-chan string) {
 
 	redraw := func(r image.Rectangle, over, pressed bool, text, avatar, icon, info, cursor, phtext image.Image, isOpen, showCursor bool) func(draw.Image) image.Rectangle {
 		return func(drw draw.Image) image.Rectangle {
@@ -78,9 +75,11 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 
 			if isOpen {
 				textRect := r
-				textRect.Min.X = textRect.Min.X + icon.Bounds().Dx() + 5 // :)
+				textRect.Min.X = textRect.Min.X + icon.Bounds().Dx() + 10 // :)
+				iconRect := r
+				iconRect.Min.X = iconRect.Min.X + 5 // :)
 				DrawLeftCentered(drw, textRect, text, draw.Over)
-				DrawLeftCentered(drw, r, icon, draw.Over)
+				DrawLeftCentered(drw, iconRect, icon, draw.Over)
 				if showCursor {
 					nr := r
 					nr.Min.X += text.Bounds().Max.X
@@ -106,7 +105,7 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 		over, pressed, isOpen, showCursor bool
 		exitCursor                        = make(chan struct{})
 		sentSearch                        string
-		err                               error
+		//err                               error
 
 		// info
 		info image.Image
@@ -137,18 +136,14 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 		}
 	}
 
-	getAvatar := func(user string) {
-		avatar = emptyImg
-		avatar, err = sc.GetAvatar(user)
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
-
 	icon = MakeIconImage("search")
 
 	for {
 		select {
+		case nuser := <-updateCurrentUser:
+			sentSearch = nuser
+			phtext = MakeTextImage(nuser, theme.Face, theme.Text)
+			env.Draw() <- redraw(r, over, pressed, text, avatar, icon, info, cursor, phtext, isOpen, showCursor)
 		case e, ok := <-env.Events():
 			if !ok {
 				return
@@ -183,7 +178,7 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 						search(st)
 						if st != "" {
 							sentSearch = st
-							go getAvatar(sentSearch)
+							//go getAvatar(sentSearch)
 						}
 						searchterm.Reset()
 						exitCursor <- struct{}{}
@@ -233,7 +228,6 @@ func Searchbar(env gui.Env, theme *Theme, search func(string)) {
 							search(st)
 							if st != "" {
 								sentSearch = st
-								go getAvatar(sentSearch)
 							}
 							searchterm.Reset()
 							exitCursor <- struct{}{}

@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/faiface/beep"
@@ -20,7 +21,78 @@ import (
 	"golang.org/x/image/draw"
 )
 
-func GetAvatar(username string) (image.Image, error) {
+type User struct {
+	Username   string
+	Av, AvSmol image.Image
+	Err        error
+}
+
+func GetAll(username string) (User, []Song, []Song, error) {
+	if username == "" {
+		err := fmt.Errorf("empty username")
+		return User{Err: err}, nil, nil, err
+	}
+
+	u := User{
+		Username: username,
+	}
+
+	sc, err := scp.New(scp.APIOptions{})
+	if err != nil {
+		return User{Err: err}, nil, nil, err
+	}
+
+	user, err := sc.GetUser(scp.GetUserOptions{
+		ProfileURL: "https://soundcloud.com/" + username,
+	})
+	if err != nil {
+		return User{Err: err}, nil, nil, err
+	}
+
+	var (
+		ogimg, av, avSmol  image.Image
+		likes, tracks      []Song
+		errt, errl, errjpg error
+	)
+
+	ParalelJobs(func() {
+		ogimg, errjpg = GetJPEG(user.AvatarURL)
+		ParalelJobs(func() {
+			av = resizeImg(ogimg, 52, 52)
+		}, func() {
+			avSmol = resizeImg(ogimg, 26, 26)
+		})
+	}, func() {
+		tracks, errt = getAllTracks(sc, user.ID, "")
+	}, func() {
+		likes, errl = getAllLikes(sc, user.ID, "")
+	})
+
+	switch true {
+	case errt != nil:
+		u.Err = errt
+	case errl != nil:
+		u.Err = errl
+	case errjpg != nil:
+		u.Err = errjpg
+	}
+
+	u.Av = av
+	u.AvSmol = avSmol
+
+	return u, tracks, likes, nil
+}
+
+func resizeImg(img image.Image, w, h int) image.Image {
+	r := image.Rect(0, 0, w, h)
+	rimg := image.NewRGBA(r)
+	if img != nil {
+		draw.CatmullRom.Scale(rimg, r, img, img.Bounds(), draw.Over, nil)
+	}
+	return rimg
+}
+
+func GetAvatar(username string, w, h int) (image.Image, error) {
 	if username == "" {
 		return nil, fmt.Errorf("empty username")
 	}
@@ -28,7 +100,6 @@ func GetAvatar(username string) (image.Image, error) {
 	sc, err := scp.New(scp.APIOptions{})
 
 	if err != nil {
-		// log.Fatal(err.Error())
 		return nil, err
 	}
 
@@ -38,30 +109,65 @@ func GetAvatar(username string) (image.Image, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("user [%v] not found", username)
-		//// log.Fatal(err.Error())
-		//return err
 	}
 
 	resp, err := http.DefaultClient.Get(user.AvatarURL)
 	if err != nil {
 		return nil, fmt.Errorf("avatar [%v] not found", user.AvatarURL)
-		//// log.Fatal(err.Error())
-		//return err
 	}
 
 	img, err := jpeg.Decode(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode [%v]", user.AvatarURL)
-		//// log.Fatal(err.Error())
-		//return err
 	}
 
-	r := image.Rect(0, 0, 26, 26)
+	r := image.Rect(0, 0, w, h)
 	rimg := image.NewRGBA(r)
 
 	draw.CatmullRom.Scale(rimg, r, img, img.Bounds(), draw.Over, nil)
 
 	return rimg, nil
+}
+
+func GetJPEG(url string) (image.Image, error) {
+	resp, err := http.DefaultClient.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("avatar [%v] not found", url)
+	}
+
+	img, err := jpeg.Decode(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode [%v]", url)
+	}
+	return img, nil
+}
+
+func GetTracksAndLikes(username string) (tracks []Song, likes []Song, err error) {
+	if username == "" {
+		return nil, nil, fmt.Errorf("empty username")
+	}
+
+	sc, err := scp.New(scp.APIOptions{})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	user, err := sc.GetUser(scp.GetUserOptions{
+		ProfileURL: "https://soundcloud.com/" + username,
+	})
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("user [%v] not found", username)
+	}
+
+	ParalelJobs(func() {
+		tracks, err = getAllTracks(sc, user.ID, "")
+	}, func() {
+		likes, err = getAllLikes(sc, user.ID, "")
+	})
+
+	return tracks, likes, err
+
 }
 
 func GetTracks(username string) ([]Song, error) {
@@ -72,7 +178,6 @@ func GetTracks(username string) ([]Song, error) {
 	sc, err := scp.New(scp.APIOptions{})
 
 	if err != nil {
-		// log.Fatal(err.Error())
 		return nil, err
 	}
 
@@ -82,8 +187,6 @@ func GetTracks(username string) ([]Song, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("user [%v] not found", username)
-		//// log.Fatal(err.Error())
-		//return err
 	}
 
 	return getAllTracks(sc, user.ID, "")
@@ -98,13 +201,11 @@ func getAllTracks(sc *scp.API, user int64, offset string) ([]Song, error) {
 		Offset: offset,
 	})
 	if err != nil {
-		// log.Fatal(err.Error())
 		return nil, err
 	}
 
 	tks, err := ls.GetTracks()
 	if err != nil {
-		// log.Fatal(err.Error())
 		return nil, err
 	}
 
@@ -118,6 +219,7 @@ func getAllTracks(sc *scp.API, user int64, offset string) ([]Song, error) {
 				Artist:     trk.User.Username,
 				Username:   username,
 				OriginalID: int(trk.ID),
+				coverUrl:   trk.ArtworkURL,
 				duration:   time.Duration(trk.FullDurationMS * 1000000),
 				data:       trk.Media.Transcodings[0],
 			}
@@ -159,7 +261,6 @@ func GetLikes(username string) ([]Song, error) {
 	sc, err := scp.New(scp.APIOptions{})
 
 	if err != nil {
-		// log.Fatal(err.Error())
 		return nil, err
 	}
 
@@ -169,8 +270,6 @@ func GetLikes(username string) ([]Song, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("user [%v] not found", username)
-		//// log.Fatal(err.Error())
-		//return err
 	}
 
 	return getAllLikes(sc, user.ID, "")
@@ -185,13 +284,11 @@ func getAllLikes(sc *scp.API, user int64, offset string) ([]Song, error) {
 		Offset: offset,
 	})
 	if err != nil {
-		// log.Fatal(err.Error())
 		return nil, err
 	}
 
 	l, err := ls.GetLikes()
 	if err != nil {
-		// log.Fatal(err.Error())
 		return nil, err
 	}
 
@@ -205,6 +302,7 @@ func getAllLikes(sc *scp.API, user int64, offset string) ([]Song, error) {
 				Artist:     li.Track.User.Username,
 				Username:   username,
 				OriginalID: int(li.Track.ID),
+				coverUrl:   li.Track.ArtworkURL,
 				duration:   time.Duration(li.Track.FullDurationMS * 1000000),
 				data:       li.Track.Media.Transcodings[0],
 			}
@@ -247,6 +345,8 @@ type Song struct {
 	Artist       string
 	OriginalID   int
 	Username     string
+	Cover        image.Image
+	coverUrl     string
 	duration     time.Duration
 	data         scp.Transcoding
 	volume       *effects.Volume
@@ -254,6 +354,10 @@ type Song struct {
 	streamer     beep.StreamSeeker
 	format       beep.Format
 	isDownloaded bool
+}
+
+func (song *Song) IsDownloaded() bool {
+	return song.isDownloaded
 }
 
 func (song *Song) Play(vol float64, done chan<- struct{}) error {
@@ -292,28 +396,34 @@ func (song *Song) Download(done chan<- int) error {
 	sc, err := scp.New(scp.APIOptions{})
 
 	if err != nil {
-		// log.Fatal(err.Error())
 		return err
 	}
 
-	buffer := &bytes.Buffer{}
+	ParalelJobs(
+		func() {
+			buffer := &bytes.Buffer{}
 
-	err = sc.DownloadTrack(song.data, buffer)
+			err = sc.DownloadTrack(song.data, buffer)
+
+			song.streamer, song.format, err = mp3.Decode(ioutil.NopCloser(buffer))
+
+			buff := beep.NewBuffer(song.format)
+			// it takes way too long but its the only way I can Seek the stream later >:(
+			buff.Append(song.streamer)
+			bstreamer := buff.Streamer(0, buff.Len())
+			song.streamer = bstreamer
+		},
+		func() {
+			var cover image.Image
+			cover, err = GetJPEG(song.coverUrl)
+			song.Cover = resizeImg(cover, 40, 40)
+		},
+	)
+
 	if err != nil {
 		return err
 	}
 
-	streamer, format, err := mp3.Decode(ioutil.NopCloser(buffer))
-	if err != nil {
-		return err
-	}
-
-	buff := beep.NewBuffer(format)
-	buff.Append(streamer)
-	bstreamer := buff.Streamer(0, buff.Len())
-
-	song.format = format
-	song.streamer = bstreamer
 	song.isDownloaded = true
 	done <- song.OriginalID
 	return nil
@@ -397,10 +507,6 @@ func (song Song) Pause() {
 	}
 }
 
-func (song Song) Stop() {
-	speaker.Clear()
-}
-
 func ClearSpeaker() {
 	speaker.Clear()
 }
@@ -420,4 +526,16 @@ func DurationToStr(d time.Duration) string {
 		return fmt.Sprintf("%v:%02d:%02d", h, m, s)
 	}
 	return fmt.Sprintf("%d:%02d", m, s)
+}
+
+func ParalelJobs(jobs ...func()) {
+	wg := &sync.WaitGroup{}
+	wg.Add(len(jobs))
+	for _, job := range jobs {
+		go func(wg *sync.WaitGroup, work func()) {
+			work()
+			wg.Done()
+		}(wg, job)
+	}
+	wg.Wait()
 }

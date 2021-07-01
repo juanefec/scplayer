@@ -46,7 +46,7 @@ func VolumeSlider(env gui.Env, theme *Theme, changeVolume func(float64)) {
 		over    bool
 		pressed bool
 	)
-
+	changeVolume(float64(vol))
 	for {
 		select {
 		case e := <-env.Events():
