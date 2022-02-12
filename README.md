@@ -17,6 +17,6 @@ Thanks [faiface](http://github.com/faiface) allways giving out really good examp
 
 ### Main dependencies
  - `github.com/faiface/beep`
- - `github.com/juanefec/gui`
+ - `github.com/faiface/gui`
  - `github.com/zackradisic/soundcloud-api`
  - `github.com/pbnjay/pixfont`

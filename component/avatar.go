@@ -4,7 +4,7 @@ import (
 	"image"
 	"image/draw"
 
-	"github.com/juanefec/gui"
+	"github.com/faiface/gui"
 	"github.com/juanefec/scplayer/sc"
 	. "github.com/juanefec/scplayer/util"
 )

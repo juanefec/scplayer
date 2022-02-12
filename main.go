@@ -1,14 +1,12 @@
 package main
 
 import (
-	"image"
 	"image/color"
 
+	"github.com/faiface/gui"
+	"github.com/faiface/gui/win"
 	"github.com/faiface/mainthread"
-	"github.com/juanefec/gui"
-	"github.com/juanefec/gui/win"
 	"github.com/juanefec/scplayer/component"
-	"github.com/juanefec/scplayer/icons"
 	"github.com/juanefec/scplayer/sc"
 	. "github.com/juanefec/scplayer/util"
 	"golang.org/x/image/colornames"
@@ -49,9 +47,9 @@ func run() {
 		VolumeBgOver:     color.RGBA{0x17, 0x0F, 0x11, 0xff},
 	}
 
-	appIcon := icons.GetIcon("app-icon")
+	//appIcon := icons.GetIcon("app-icon")
 
-	w, err := win.New(win.Title("scplayer"), win.Size(1000, 600), win.Resizable(), win.Icon([]image.Image{appIcon}))
+	w, err := win.New(win.Title("scplayer"), win.Size(1000, 600), win.Resizable())
 	if err != nil {
 		panic(err)
 	}
@@ -133,7 +131,7 @@ func run() {
 
 	go component.SelectGeneric(mux, 2, 3, 16, 116, 142, 52, 52, theme, func(tab string) {
 		action <- tab
-	}, "tracks", "tracks", "likes", "playlist")
+	}, "tracks", "tracks", "likes", "playlist", "local")
 
 	go component.Browser(EvenVerticalMinMaxY(FixedFromBounds(mux.MakeEnv(), 0, 52), 3, 16, 16, 142, 1080), theme,
 		action,

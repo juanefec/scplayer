@@ -9,8 +9,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/juanefec/gui"
-	"github.com/juanefec/gui/win"
+	"github.com/faiface/gui"
+	"github.com/faiface/gui/win"
 	"github.com/juanefec/scplayer/sc"
 	. "github.com/juanefec/scplayer/util"
 	"golang.org/x/image/math/fixed"
@@ -138,7 +138,8 @@ func Browser(env gui.Env, theme *Theme,
 		Pos      map[string]image.Point
 		Profile  sc.User
 		Tracks,
-		Likes []sc.Song
+		Likes,
+		Locals []sc.Song
 	}
 
 	var (
@@ -149,8 +150,8 @@ func Browser(env gui.Env, theme *Theme,
 		selected     = -1
 		selectedOGID = -1
 
-		likesImage, tracksImage, playlistImage *image.RGBA
-		namesImage                             = image.NewRGBA(r)
+		likesImage, tracksImage, playlistImage, localsImage *image.RGBA
+		namesImage                                          = image.NewRGBA(r)
 
 		showing string = "tracks" // "likes" || "tracks" || "playlist"
 
@@ -214,6 +215,26 @@ func Browser(env gui.Env, theme *Theme,
 
 	}
 
+	refreshLocals := func() {
+		user.Locals = sc.LoadLocals()
+		localsImage = reload(user.Locals)
+		selected = -1
+		for i, s := range user.Locals {
+			if s.OriginalID == selectedOGID {
+				selected = i
+			}
+			for _, pnx := range playnexts {
+				if pnx.OriginalID == s.OriginalID {
+					pnx.i = i
+					playnextsViewMatches = append(playnextsViewMatches, pnx)
+				}
+			}
+		}
+		songs = user.Locals
+		namesImage = localsImage
+
+	}
+
 	refreshLikes := func() {
 		likesImage = reload(user.Likes)
 		selected = -1
@@ -247,6 +268,8 @@ func Browser(env gui.Env, theme *Theme,
 			refreshTracks()
 		} else if showing == "playlist" {
 			refreshPlaylist()
+		} else if showing == "local" {
+			refreshLocals()
 		} else {
 			refreshLikes()
 		}
@@ -495,6 +518,11 @@ func Browser(env gui.Env, theme *Theme,
 		refresh(false)
 	}
 
+	showLocal := func() {
+		showing = "local"
+		refresh(false)
+	}
+
 	mrbSelectPlaynext := func(e win.MoMove, showing string) {
 		if mouseRbPressed && showing != "playlist" {
 			if !e.Point.In(r) {
@@ -545,6 +573,8 @@ func Browser(env gui.Env, theme *Theme,
 				showLikes()
 			case "playlist":
 				showPlaylist()
+			case "local":
+				showLocal()
 			}
 		case m := <-move:
 			moveSong(m)

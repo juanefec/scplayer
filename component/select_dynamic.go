@@ -6,8 +6,8 @@ import (
 	"image/color"
 	"image/draw"
 
-	"github.com/juanefec/gui"
-	"github.com/juanefec/gui/win"
+	"github.com/faiface/gui"
+	"github.com/faiface/gui/win"
 	"github.com/juanefec/scplayer/sc"
 	. "github.com/juanefec/scplayer/util"
 )

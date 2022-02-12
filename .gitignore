@@ -1,3 +1,5 @@
 *.exe
 launch.json
+songs/
+build/
 # .gitignore(? ahre

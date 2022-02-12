@@ -8,6 +8,7 @@ import (
 	"image/jpeg"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -56,7 +57,7 @@ func GetAll(username string) (User, []Song, []Song, error) {
 	)
 
 	ParalelJobs(func() {
-		ogimg, errjpg = GetJPEG(user.AvatarURL)
+		ogimg, _, errjpg = GetJPEG(user.AvatarURL)
 		ParalelJobs(func() {
 			av = resizeImg(ogimg, 52, 52)
 		}, func() {
@@ -129,17 +130,21 @@ func GetAvatar(username string, w, h int) (image.Image, error) {
 	return rimg, nil
 }
 
-func GetJPEG(url string) (image.Image, error) {
+func GetJPEG(url string) (image.Image, []byte, error) {
 	resp, err := http.DefaultClient.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("avatar [%v] not found", url)
+		return nil, nil, fmt.Errorf("avatar [%v] not found", url)
 	}
-
+	raw, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to read raw data [%v]", url)
+	}
 	img, err := jpeg.Decode(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("unable to decode [%v]", url)
+		return nil, nil, fmt.Errorf("unable to decode [%v]", url)
 	}
-	return img, nil
+
+	return img, raw, nil
 }
 
 func GetTracksAndLikes(username string) (tracks []Song, likes []Song, err error) {
@@ -235,20 +240,20 @@ func getAllTracks(sc *scp.API, user int64, offset string) ([]Song, error) {
 	// the list.
 	// Here I just take the offset value form the url.Query() and pass it recusively
 
-	// if ls.NextHref != "" {
-	// 	url, err := url.Parse(ls.NextHref)
-	// 	if err != nil {
-	// 		// log.Fatal(err.Error())
-	// 		return nil, err
-	// 	}
+	if ls.NextHref != "" {
+		url, err := url.Parse(ls.NextHref)
+		if err != nil {
+			// log.Fatal(err.Error())
+			return nil, err
+		}
 
-	// 	off := url.Query()["offset"][0]
-	// 	at, err := getAllTracks(sc, user, off)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	songs = append(songs, at...)
-	// }
+		off := url.Query()["offset"][0]
+		at, err := getAllTracks(sc, user, off)
+		if err != nil {
+			return nil, err
+		}
+		songs = append(songs, at...)
+	}
 
 	return songs, nil
 }
@@ -356,6 +361,31 @@ type Song struct {
 	isDownloaded bool
 }
 
+type SongData struct {
+	Title      string `json:"title"`
+	Artist     string `json:"artist"`
+	OriginalID int    `json:"id"`
+	Username   string `json:"artist_username"`
+}
+
+func (song *SongData) AsSong() Song {
+	return Song{
+		Title:      song.Title,
+		Artist:     song.Artist,
+		OriginalID: song.OriginalID,
+		Username:   song.Username,
+	}
+}
+
+func (song *Song) AsSongData() SongData {
+	return SongData{
+		Title:      song.Title,
+		Artist:     song.Artist,
+		OriginalID: song.OriginalID,
+		Username:   song.Username,
+	}
+}
+
 func (song *Song) IsDownloaded() bool {
 	return song.isDownloaded
 }
@@ -393,17 +423,50 @@ func (song *Song) Download(done chan<- int) error {
 		return fmt.Errorf("error")
 	}
 
+	fmt.Println("checking localy...")
+	if audio, cover, exist := LocalCheck(song.OriginalID); exist {
+		err := error(nil)
+		ParalelJobs(
+			func() {
+				song.streamer, song.format, err = mp3.Decode(ioutil.NopCloser(audio))
+
+				buff := beep.NewBuffer(song.format)
+				// it takes way too long but its the only way I can Seek the stream later >:(
+				buff.Append(song.streamer)
+				bstreamer := buff.Streamer(0, buff.Len())
+				song.streamer = bstreamer
+			},
+			func() {
+				song.Cover = resizeImg(cover, 40, 40)
+			},
+		)
+		if err == nil {
+			song.isDownloaded = true
+			done <- song.OriginalID
+		}
+		fmt.Println("local files found!")
+		return err
+	}
+	fmt.Println("downloading...")
+
 	sc, err := scp.New(scp.APIOptions{})
 
 	if err != nil {
 		return err
 	}
 
+	var (
+		audioStorCp []byte
+		cover       image.Image
+	)
+
 	ParalelJobs(
 		func() {
 			buffer := &bytes.Buffer{}
 
 			err = sc.DownloadTrack(song.data, buffer)
+
+			audioStorCp = buffer.Bytes()
 
 			song.streamer, song.format, err = mp3.Decode(ioutil.NopCloser(buffer))
 
@@ -414,8 +477,7 @@ func (song *Song) Download(done chan<- int) error {
 			song.streamer = bstreamer
 		},
 		func() {
-			var cover image.Image
-			cover, err = GetJPEG(song.coverUrl)
+			cover, _, err = GetJPEG(song.coverUrl)
 			song.Cover = resizeImg(cover, 40, 40)
 		},
 	)
@@ -423,6 +485,13 @@ func (song *Song) Download(done chan<- int) error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("saving locally...")
+	err = LocalSave(song.AsSongData(), audioStorCp, cover)
+	if err != nil {
+		fmt.Println("error saving", err)
+	}
+	fmt.Println("saved", err)
 
 	song.isDownloaded = true
 	done <- song.OriginalID
