@@ -89,6 +89,29 @@ func VolumeSlider(env gui.Env, theme *Theme, changeVolume func(float64)) {
 					pressed = false
 					env.Draw() <- redraw(r, over, pressed)
 				}
+			case win.KbDown:
+				if (e.Key == win.KeyUp || e.Key == win.KeyDown) && vol >= volmin && vol <= volmax {
+					v := 0.0
+					switch e.Key {
+					case win.KeyUp:
+						v = 0.5
+					case win.KeyDown:
+						v = -0.5
+					}
+					volf = volf + v
+					if volf > 0.3 {
+						vol = int(math.Ceil(volf))
+					} else {
+						vol = 0
+					}
+					if volf > float64(volmax) {
+						vol = volmax
+						volf = float64(volmax)
+					}
+					changeVolume(volf)
+				}
+				env.Draw() <- redraw(r, over, pressed)
+
 			}
 		}
 
