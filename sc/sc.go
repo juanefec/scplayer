@@ -25,7 +25,7 @@ import (
 type User struct {
 	Username   string
 	Av, AvSmol image.Image
-	Err        error
+	Err        error // a comment
 }
 
 func GetAll(username string) (User, []Song, []Song, error) {
